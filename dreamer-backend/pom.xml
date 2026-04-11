@@ -15,10 +15,10 @@
 
     <!-- 子模块 -->
     <modules>
-<!--        <module>common</module>-->
-<!--        <module>gateway</module>-->
+        <module>common</module>
+        <module>gateway</module>
 <!--        <module>auth-service</module>-->
-<!--        <module>user-service</module>-->
+        <module>user-service</module>
 <!--        <module>post-service</module>-->
 <!--        <module>letter-service</module>-->
 <!--        <module>message-service</module>-->
@@ -31,6 +31,18 @@
         <java.version>17</java.version>
         <spring.boot.version>3.2.5</spring.boot.version>
         <spring.cloud.version>2023.0.1</spring.cloud.version>
+        <spring.mybatisPlus.version>3.5.6</spring.mybatisPlus.version>
+        <spring.alibaba.version>2021.0.1.0</spring.alibaba.version>
+        <spring.sa-token.version>1.45.0</spring.sa-token.version>
+        <spring.sa-token.reactor.version>1.45.0</spring.sa-token.reactor.version>
+        <spring.cloud.alibaba.version>2022.0.0.0</spring.cloud.alibaba.version>
+        <satoken.redis.template.version>1.45.0</satoken.redis.template.version>
+        <lombok.version>1.18.30</lombok.version>
+        <sentinel.version>1.8.6</sentinel.version>
+        <aliyun.sdk.oss.version>3.10.2</aliyun.sdk.oss.version>
+        <joda.time.version>2.2</joda.time.version>
+        <hutool.version>5.8.44</hutool.version>
+        <redisson.version>3.32.0</redisson.version>
     </properties>
 
     <!-- 依赖版本管理（不引入，只管理） -->
@@ -53,6 +65,79 @@
                 <version>${spring.cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${spring.mybatisPlus.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring.cloud.alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Sa-Token 权限认证，在线文档：https://sa-token.cc -->
+            <dependency>
+                <groupId>cn.dev33</groupId>
+                <artifactId>sa-token-spring-boot3-starter</artifactId>
+                <version>${spring.sa-token.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.dev33</groupId>
+                <artifactId>sa-token-reactor-spring-boot3-starter</artifactId>
+                <version>${spring.sa-token.reactor.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.dev33</groupId>
+                <artifactId>sa-token-redis-template</artifactId>
+                <version>${satoken.redis.template.version}</version>
+            </dependency>
+
+            <!-- Lombok 简化Java代码：自动生成get/set/构造器/toString等 -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.csp</groupId>
+                <artifactId>sentinel-core</artifactId>
+                <version>${sentinel.version}</version>
+            </dependency>
+
+            <!--阿里云存储-->
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>${aliyun.sdk.oss.version}</version>
+            </dependency>
+            <!-- 日期工具栏依赖 -->
+            <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <version>${joda.time.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-bom</artifactId>
+                <version>${hutool.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
             </dependency>
 
         </dependencies>
@@ -78,6 +163,7 @@
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring.boot.version}</version>
                 </plugin>
 
             </plugins>

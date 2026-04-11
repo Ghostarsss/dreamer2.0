@@ -3,6 +3,7 @@
 
 # Log file
 *.log
+*.logs
 
 # BlueJ files
 *.ctxt
@@ -24,3 +25,5 @@ hs_err_pid*
 replay_pid*
 
 .idea
+
+application-prod.yml
