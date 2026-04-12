@@ -13,13 +13,13 @@ import com.dreamer.common.utils.AliOSSUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +49,8 @@ public class RegisterServiceImpl extends ServiceImpl<RegisterMapper, User> imple
     private UserFeignClient userFeignClient;
     @Autowired
     private AliOSSUtil aliOSSUtil;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
 
     @Override
@@ -156,9 +158,6 @@ public class RegisterServiceImpl extends ServiceImpl<RegisterMapper, User> imple
 
             //删除 redis 的验证码和其冷却时间
             redisTemplate.delete(List.of(redisKey, EMAIL_REDIS_CODE_COOLDOWN_KEY + email));
-
-            //TODO rabbitMQ 发送异步消息，提示用户注册成功
-
 
             return SaResult.ok(REGISTER_SUCCESS);
         } catch (Exception e) {

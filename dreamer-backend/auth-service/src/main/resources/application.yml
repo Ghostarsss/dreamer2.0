@@ -11,6 +11,12 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
+  # 文件上传
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      resolve-lazily: true
 
 # 日志路径
 logging:

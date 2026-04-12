@@ -5,14 +5,18 @@ import cn.dev33.satoken.util.SaResult;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.entity.dto.LoginDto;
 import com.dreamer.common.entity.pojo.User;
+import com.dreamer.common.entity.pojo.UserMessage;
 import com.dreamer.userservice.mapper.UserMapper;
 import com.dreamer.userservice.service.IUserService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+import static com.dreamer.common.constant.MessageConstant.REGISTER_MESSAGE_TYPE;
 import static com.dreamer.common.message.UserMessage.*;
 import static com.dreamer.userservice.constant.UserConstant.USER_IS_BANNED;
 import static com.dreamer.userservice.message.RegisterMessage.PASSWORD_ERROR;
@@ -20,6 +24,9 @@ import static com.dreamer.userservice.message.RegisterMessage.PASSWORD_ERROR;
 @Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @Override
     public SaResult register(User user) {
@@ -32,6 +39,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         save(user);
 
         Long userId = user.getId();
+
+        //rabbit 发送注册成功消息
+        //封装通知内容
+        UserMessage userMessage = new UserMessage();
+        userMessage.setUserId(userId);
+        userMessage.setType(REGISTER_MESSAGE_TYPE);
+        userMessage.setCreateTime(LocalDateTime.now());
+        userMessage.setContent("亲爱的用户 "+user.getUsername()+" 欢迎您来到 dreamer 大家庭，这里有许多有趣的功能等待您探索🎉");
+        rabbitTemplate.convertAndSend("auth.register.message.queue",userMessage);
+
         //登录
         StpUtil.login(userId);
         //缓存 user 对象信息
