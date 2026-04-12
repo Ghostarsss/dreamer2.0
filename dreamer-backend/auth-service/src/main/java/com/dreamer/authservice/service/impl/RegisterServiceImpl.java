@@ -15,6 +15,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,9 +30,9 @@ import static com.dreamer.authservice.key.RedisKey.EMAIL_REDIS_CODE_COOLDOWN_KEY
 import static com.dreamer.authservice.key.RedisKey.EMAIL_REDIS_VERIFY_CODE_KEY;
 import static com.dreamer.authservice.message.CodeMessage.*;
 import static com.dreamer.authservice.message.EmailMessage.*;
-import static com.dreamer.authservice.message.RegisterMessage.REGISTER_SUCCESS;
 import static com.dreamer.common.message.SystemMessage.OPERATION_FREQUENT;
 import static com.dreamer.common.message.SystemMessage.SYSTEM_ERROR;
+import static com.dreamer.common.message.UserMessage.REGISTER_SUCCESS;
 import static com.dreamer.common.message.UserMessage.UPLOAD_AVATAR_ERROR;
 
 @Service
@@ -141,15 +142,23 @@ public class RegisterServiceImpl extends ServiceImpl<RegisterMapper, User> imple
             }
 
             //注册用户
-            //TODO openfeign远程同步调用
+            //openfeign远程同步调用
             User user = BeanUtil.copyProperties(userDto, User.class);
-            userFeignClient.register(user);
 
+            //springboot-security 密码加密
+            String password = userDto.getPassword();
+            BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+            String encode = bCryptPasswordEncoder.encode(password);
+
+            user.setPassword(encode);
+
+            userFeignClient.register(user);
 
             //删除 redis 的验证码和其冷却时间
             redisTemplate.delete(List.of(redisKey, EMAIL_REDIS_CODE_COOLDOWN_KEY + email));
 
             //TODO rabbitMQ 发送异步消息，提示用户注册成功
+
 
             return SaResult.ok(REGISTER_SUCCESS);
         } catch (Exception e) {

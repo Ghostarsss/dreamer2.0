@@ -4,6 +4,24 @@ spring:
       host: localhost
       password: 667667
       port: 6379
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    # 虚拟主机（默认就是 /）
+    virtual-host: /
+    # 连接超时
+    connection-timeout: 10s
+    # 消息确认（可选）
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        # 手动确认（推荐）
+        acknowledge-mode: manual
+        # 每次预取1条，防止消费者被打崩
+        prefetch: 1
 
 ############## Sa-Token ?? (??: https://sa-token.cc) ##############
 sa-token:

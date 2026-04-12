@@ -1,4 +1,4 @@
-package com.dreamer.authservice.entity.dto;
+package com.dreamer.common.entity.dto;
 
 import lombok.Data;
 

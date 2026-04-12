@@ -1,7 +1,7 @@
 package com.dreamer.authservice.controller;
 
 import cn.dev33.satoken.util.SaResult;
-import com.dreamer.authservice.entity.dto.LoginDto;
+import com.dreamer.common.entity.dto.LoginDto;
 import com.dreamer.authservice.service.IRegisterService;
 import com.dreamer.common.entity.dto.UserDto;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +39,11 @@ public class RegisterController {
         return registerService.uploadAvatar(avatar);
     }
 
+    /**
+     * 注册用户
+     * @param userDto
+     * @return
+     */
     @PostMapping
     public SaResult register(@RequestBody UserDto userDto) {
         return registerService.register(userDto);

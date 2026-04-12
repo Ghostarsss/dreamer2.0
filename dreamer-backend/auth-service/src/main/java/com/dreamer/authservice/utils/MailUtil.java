@@ -14,7 +14,7 @@ public class MailUtil {
     // 发送邮件
     public void sendMail(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("2185866695@qq.com");
+        message.setFrom("3397184387@qq.com");
         message.setTo(to);
         message.setSubject(subject);
         message.setText(text);

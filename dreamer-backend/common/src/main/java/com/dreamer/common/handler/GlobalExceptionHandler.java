@@ -13,7 +13,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public SaResult handleException(Exception e) {
-        log.info("系统异常: {}",e.getMessage());
+        log.error("系统异常: {}",e.getMessage());
         return SaResult.error(SYSTEM_ERROR);
     }
 }
