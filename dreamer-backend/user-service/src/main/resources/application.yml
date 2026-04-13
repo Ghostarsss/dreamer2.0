@@ -1,7 +1,21 @@
 spring:
   application:
     name: user-service
-
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: 3397184387@qq.com
+    password: lvdzsrpkhbupciha
+    protocol: smtps
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+  # 文件上传
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      resolve-lazily: true
 
 server:
   port: 8085

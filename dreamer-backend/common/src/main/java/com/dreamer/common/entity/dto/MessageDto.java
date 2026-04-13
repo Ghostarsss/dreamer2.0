@@ -1,24 +1,17 @@
-package com.dreamer.common.entity.pojo;
+package com.dreamer.common.entity.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.dreamer.common.entity.base.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
-/**
- * 消息模板表
- */
 @Data
-@TableName("message_template")
-public class MessageTemplate {
-
-    /**
-     * 消息模板ID
-     */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class MessageDto {
 
     /**
      * 消息类型：
@@ -41,5 +34,19 @@ public class MessageTemplate {
      */
     private Integer isBroadcast;
 
+    /**
+     * 接收用户ID
+     */
+    private Long userId;
+
+
+    /**
+     * 是否已读：0未读 1已读
+     */
+    private Integer readStatus;
+
+    /**
+     * 接收时间
+     */
     private LocalDateTime createTime;
 }

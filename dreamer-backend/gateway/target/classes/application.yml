@@ -15,6 +15,11 @@ spring:
           predicates:
             - Path=/register/**,/login/**
 
+        - id: message-service
+          uri: lb://message-service
+          predicates:
+            - Path=/messages/**
+
     sentinel:
       transport:
         dashboard: localhost:9527

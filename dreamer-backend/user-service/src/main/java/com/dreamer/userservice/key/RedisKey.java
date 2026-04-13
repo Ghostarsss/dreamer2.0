@@ -1,4 +1,4 @@
-package com.dreamer.authservice.key;
+package com.dreamer.userservice.key;
 
 public class RedisKey {
 

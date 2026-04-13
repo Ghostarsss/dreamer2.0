@@ -1,8 +1,6 @@
 spring:
   application:
-    name: auth-service
-  profiles:
-    active: prod
+    name: message-service
   cloud:
     nacos:
       server-addr: 127.0.0.1:8848

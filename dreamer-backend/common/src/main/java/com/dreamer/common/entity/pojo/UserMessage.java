@@ -6,12 +6,11 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 用户消息表（继承消息模板）
+ * 用户消息表
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
 @TableName("user_message")
-public class UserMessage extends MessageTemplate {
+public class UserMessage{
 
     /**
      * 接收用户ID

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.dreamer.messageservice.mapper.UserMessageMapper">
+
+
+    <select id="listMessage" resultType="com.dreamer.common.entity.dto.MessageDto">
+        select *
+        from user_message um
+                 inner join message_template mt
+                            on mt.id = um.message_id
+        where um.user_id = #{userId}
+    </select>
+</mapper>
