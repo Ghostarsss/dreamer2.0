@@ -20,6 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -180,8 +181,8 @@ public class RegisterServiceImpl extends ServiceImpl<RegisterMapper, User> imple
             //openfeign 远程同步调用
             userFeignClient.register(user);
 
-            //TODO 删除 redis 的验证码和其冷却时间
-//            redisTemplate.delete(List.of(redisKey, EMAIL_REDIS_CODE_COOLDOWN_KEY + email));
+            //删除 redis 的验证码和其冷却时间
+            redisTemplate.delete(List.of(redisKey, EMAIL_REDIS_CODE_COOLDOWN_KEY + email));
 
             return SaResult.ok(REGISTER_SUCCESS);
         } catch (Exception e) {
