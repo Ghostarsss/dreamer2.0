@@ -1,8 +1,10 @@
-package com.dreamer.common.entity.pojo;
+package com.dreamer.messageservice.entity.pojo;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
+
 import java.time.LocalDateTime;
 
 /**
@@ -11,6 +13,9 @@ import java.time.LocalDateTime;
 @Data
 @TableName("user_message")
 public class UserMessage{
+
+    @TableId(type = IdType.ASSIGN_ID)
+    private Long id;
 
     /**
      * 接收用户ID

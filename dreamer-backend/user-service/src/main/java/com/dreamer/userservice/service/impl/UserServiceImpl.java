@@ -5,18 +5,22 @@ import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.dreamer.common.constant.RabbitMQConstant;
+import com.dreamer.common.entity.dto.EXPRabbitDto;
 import com.dreamer.common.entity.dto.LoginDto;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
 import com.dreamer.common.utils.PasswordUtil;
 import com.dreamer.userservice.entity.vo.UserVo;
+import com.dreamer.userservice.feign.LetterFeignClient;
 import com.dreamer.userservice.key.LockKey;
 import com.dreamer.userservice.mapper.UserMapper;
 import com.dreamer.userservice.service.IUserService;
 import com.dreamer.userservice.utils.AliOSSUtil;
 import com.dreamer.userservice.utils.LevelUtil;
 import com.dreamer.userservice.utils.MailUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -44,20 +48,16 @@ import static com.dreamer.userservice.message.RegisterMessage.PASSWORD_ERROR;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
-    @Autowired
-    private AliOSSUtil aliOSSUtil;
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-    @Autowired
-    private MailUtil mailUtil;
-    @Autowired
-    private RedissonClient redissonClient;
-    @Autowired
-    private UserMapper userMapper;
+    private final RabbitTemplate rabbitTemplate;
+    private final AliOSSUtil aliOSSUtil;
+    private final StringRedisTemplate redisTemplate;
+    private final MailUtil mailUtil;
+    private final RedissonClient redissonClient;
+    private final UserMapper userMapper;
+    private final LetterFeignClient letterFeignClient;
 
     @Override
     public SaResult register(User user) {
@@ -76,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //封装通知内容
         MessageDto messageDto = MessageDto.builder().createTime(now).content("亲爱的用户 " + user.getUsername() + " 欢迎您来到 dreamer 大家庭，这里有许多有趣的功能等待您探索🎉").type(REGISTER_MESSAGE_TYPE).userId(userId).build();
 
-        rabbitTemplate.convertAndSend("auth.register.message.queue", messageDto);
+        rabbitTemplate.convertAndSend(RabbitMQConstant.AUTH_REGISTER_MESSAGE_QUEUE, messageDto);
 
         //登录
         StpUtil.login(userId);
@@ -283,5 +283,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         userVo.setLevel(level);
 
         return SaResult.data(userVo);
+    }
+
+    @Override
+    public SaResult queryOpenLettersByUserId(String userId) {
+
+        //查询用户是否存在和封禁
+        User user = getById(userId);
+        if (user == null) {
+            return SaResult.error(USER_NOT_EXISTS);
+        }
+        if (user.getStatus().equals(USER_IS_BANNED)) {
+            return SaResult.error(USER_IS_BANNED_MESSAGE);
+        }
+
+        //openfeign 远程调用信封服务，查询信件
+        return letterFeignClient.queryOpenLettersByUserId(userId);
+    }
+
+    @Override
+    public void followingEXP(EXPRabbitDto expRabbitDto) {
+        lambdaUpdate()
+                .setSql("exp = exp + " + expRabbitDto.getExpIncrement())
+                .eq(User::getId, expRabbitDto.getUserId())
+                .update();
     }
 }

@@ -4,9 +4,11 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.dreamer.common.constant.MessageConstant;
+import com.dreamer.common.entity.dto.FollowingRabbitDto;
 import com.dreamer.common.entity.dto.MessageDto;
-import com.dreamer.common.entity.pojo.MessageTemplate;
-import com.dreamer.common.entity.pojo.UserMessage;
+import com.dreamer.messageservice.entity.pojo.MessageTemplate;
+import com.dreamer.messageservice.entity.pojo.UserMessage;
 import com.dreamer.messageservice.mapper.MessageTemplateMapper;
 import com.dreamer.messageservice.mapper.UserMessageMapper;
 import com.dreamer.messageservice.service.IMessageService;
@@ -15,9 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
-
-import static com.dreamer.common.constant.MessageConstant.NOT_READ_STATUS;
 
 @Service
 @Slf4j
@@ -68,6 +69,26 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         //消息改为已读
         userMessageMapper.isRead(userId);
         return SaResult.data(messageDtoList);
+    }
+
+    @Override
+    @Transactional
+    public void followingMessage(FollowingRabbitDto followingRabbitDto) {
+
+        LocalDateTime now = LocalDateTime.now();
+        //插入消息模板
+        MessageTemplate messageTemplate = new MessageTemplate();
+        messageTemplate.setContent(followingRabbitDto.getFansUsername()+ " 关注了你");
+        messageTemplate.setType(MessageConstant.FOLLOW_MESSAGE_TYPE);
+        messageTemplate.setCreateTime(now);
+        save(messageTemplate);
+
+        //插入用户消息
+        UserMessage userMessage = new UserMessage();
+        userMessage.setCreateTime(now);
+        userMessage.setUserId(followingRabbitDto.getFollowedId());
+        userMessage.setMessageId(messageTemplate.getId());
+        userMessageMapper.insert(userMessage);
     }
 
 

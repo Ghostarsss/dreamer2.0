@@ -2,7 +2,7 @@ package com.dreamer.messageservice.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dreamer.common.entity.dto.MessageDto;
-import com.dreamer.common.entity.pojo.UserMessage;
+import com.dreamer.messageservice.entity.pojo.UserMessage;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;

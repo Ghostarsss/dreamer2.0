@@ -92,8 +92,23 @@ public class UserController {
         return userService.updateMe(userDto);
     }
 
+    /**
+     * 查询指定用户信息
+     * @param userId
+     * @return
+     */
     @GetMapping("/{userId}")
     public SaResult queryUserById(@PathVariable String userId) {
         return userService.queryUserById(Integer.valueOf(userId));
+    }
+
+    /**
+     * 查询用户公开信件
+     * @param userId
+     * @return
+     */
+    @GetMapping("/{userId}/open-letters")
+    public SaResult queryOpenLettersByUserId(@PathVariable String userId) {
+        return userService.queryOpenLettersByUserId(userId);
     }
 }

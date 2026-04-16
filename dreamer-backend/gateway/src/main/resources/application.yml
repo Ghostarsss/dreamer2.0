@@ -8,7 +8,8 @@ spring:
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/users/**
+            - Path=/users/**,/follows/**,/vp/**
+            - Path=!/vp/letter-upload-images
 
         - id: auth-service
           uri: lb://auth-service
@@ -19,6 +20,11 @@ spring:
           uri: lb://message-service
           predicates:
             - Path=/messages/**
+
+        - id: letters-service
+          uri: lb://letter-service
+          predicates:
+            - Path=/letters/**
 
     sentinel:
       transport:

@@ -1,9 +1,8 @@
-package com.dreamer.common.entity.pojo;
+package com.dreamer.messageservice.entity.pojo;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.dreamer.common.entity.base.BaseEntity;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -17,7 +16,7 @@ public class MessageTemplate {
     /**
      * 消息模板ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
