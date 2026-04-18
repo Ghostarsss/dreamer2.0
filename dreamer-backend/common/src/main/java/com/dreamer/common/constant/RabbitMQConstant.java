@@ -7,4 +7,10 @@ public class RabbitMQConstant {
     public static final String USER_FOLLOWING_MESSAGE_QUEUE = "user.following.message.queue";
 
     public static final String USER_FOLLOWING_EXP_QUEUE = "user.following.exp.queue";
+
+    public static final String LETTER_TO_BE_OPENED_QUEUE = "letter.toBeOpened.queue";
+
+    public static final String LETTER_TO_BE_OPENED_KEY = "letter.toBeOpened.key";
+
+    public static final String DELAY_EXCHANGE_NAME = "delay-exchange";
 }

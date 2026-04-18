@@ -38,6 +38,43 @@ public class LetterController {
      */
     @PostMapping("/images")
     public SaResult uploadImages(@RequestParam("img") MultipartFile img) {
-        return null;
+        return letterService.uploadImages(img);
+    }
+
+    /**
+     * 删除已开启的信件
+     * @param letterId
+     * @return
+     */
+    @DeleteMapping("/{letterId}")
+    public SaResult removeLetter(@PathVariable Long letterId) {
+        return letterService.removeLetter(letterId);
+    }
+
+    /**
+     * 查询是否存在未开启的信件
+     * @return
+     */
+    @GetMapping("/exist-unopened")
+    public SaResult UnopenedLetterIsExist() {
+        return letterService.unopenedLetterIsExist();
+    }
+
+    /**
+     * 查看待开启信件内容
+     * @return
+     */
+    @GetMapping("/to-be-opened")
+    public SaResult queryLetterToBeOpened() {
+        return letterService.queryLetterToBeOpened();
+    }
+
+    /**
+     * 查询已开启信件
+     * @return
+     */
+    @GetMapping("/opened")
+    public SaResult listOpenedLetters(Integer page,Integer size) {
+        return letterService.listOpenedLetters(page,size);
     }
 }

@@ -5,11 +5,19 @@ spring:
     gateway:
       enabled: true
       routes:
+
+#        排除的路径不让外部访问
+        - id: internal-api-block
+          uri: lb://auth-service
+          predicates:
+            - Path=/vp/letter-upload-images
+          filters:
+            - SetStatus=403
+
         - id: user-service
           uri: lb://user-service
           predicates:
             - Path=/users/**,/follows/**,/vp/**
-            - Path=!/vp/letter-upload-images
 
         - id: auth-service
           uri: lb://auth-service

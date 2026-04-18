@@ -23,8 +23,8 @@ public class AliOSSUtil {
     @Value("${aliyun.oss.endpoint}")
     private String endpoint;
 
-    @Value("${aliyun.oss.backetName}")
-    private String backetName;
+    @Value("${aliyun.oss.bucketName}")
+    private String bucketName;
 
     public String addAli(MultipartFile file) throws IOException {
 
@@ -43,13 +43,13 @@ public class AliOSSUtil {
             String datePath = new DateTime().toString("yyyy/MM/dd");
             filename = datePath + "/" + filename;
 
-            ossClient.putObject(backetName, filename, inputStream);
+            ossClient.putObject(bucketName, filename, inputStream);
 
             // 关闭OSSClient
             ossClient.shutdown();
 
             // 上传文件之后的路径，自己拼接
-            uploadUrl = "https://"+backetName+"."+endpoint+"/"+filename;
+            uploadUrl = "https://"+bucketName+"."+endpoint+"/"+filename;
         return uploadUrl;
     }
 

@@ -8,7 +8,7 @@ import com.dreamer.messageservice.entity.pojo.MessageTemplate;
 
 public interface IMessageService extends IService<MessageTemplate> {
 
-    void registerMessage(MessageDto messageDto);
+    void addMessage(MessageDto messageDto);
 
     SaResult messageCount(String isRead);
 

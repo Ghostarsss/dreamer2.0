@@ -3,6 +3,7 @@ package com.dreamer.userservice.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.LocalDateTimeUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.EXPConstant;
 import com.dreamer.common.constant.RabbitMQConstant;
@@ -17,7 +18,6 @@ import com.dreamer.userservice.constant.UserConstant;
 import com.dreamer.userservice.entity.pojo.UserFollow;
 import com.dreamer.userservice.entity.vo.UserVo;
 import com.dreamer.userservice.key.LockKey;
-import com.dreamer.userservice.key.RedisKey;
 import com.dreamer.userservice.mapper.FollowingMapper;
 import com.dreamer.userservice.message.FollowingMessage;
 import com.dreamer.userservice.service.IFollowingService;
@@ -25,7 +25,6 @@ import com.dreamer.userservice.service.IUserService;
 import jodd.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.angus.mail.util.BEncoderStream;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -341,5 +340,159 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         redisTemplate.opsForZSet().remove(followingKey, String.valueOf(currentUserId));
 
         return SaResult.ok(FollowingMessage.REMOVE_FANS_SUCCESS);
+    }
+
+    @Override
+    public SaResult listFollowingByUserId(Long userId, Long cursor, Integer offset) {
+
+        //判断滚动查询参数是否存在
+        if (cursor == null) {
+            cursor = Long.MAX_VALUE;
+        }
+        if (offset == null) {
+            offset = 0;
+        }
+
+        //查询缓存
+        String followingKey = USER_FOLLOWING_KEY + userId;
+        Boolean hasKey = redisTemplate.hasKey(followingKey);
+
+        //若不存在，查数据库并更新缓存
+        if (!hasKey) {
+
+            Map<Long, Long> userIdAndTime = lambdaQuery()
+                    .eq(UserFollow::getUserId, userId)
+                    .list()
+                    .stream()
+                    .collect(Collectors.toMap(UserFollow::getFollowedUserId, f -> {
+                        return f.getCreateTime()
+                                .atZone(ZoneId.systemDefault())
+                                .toInstant()
+                                .toEpochMilli();
+                    }));
+
+            //更新缓存
+            for (Map.Entry<Long, Long> entry : userIdAndTime.entrySet()) {
+                redisTemplate.opsForZSet().add(followingKey, entry.getKey().toString(), entry.getValue());
+            }
+        }
+
+        //查询缓存
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = redisTemplate.opsForZSet().reverseRangeByScoreWithScores(
+                followingKey, 0, cursor, offset, ScrollConstant.SCROLL_LIMIT
+        );
+
+        //解析缓存
+        double maxTime = 0;
+        int newOffset = 1;
+        ArrayList<Long> userIds = new ArrayList<>(typedTuples.size());
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
+
+            String followingUserId = tuple.getValue();
+            Double score = tuple.getScore();
+            userIds.add(Long.valueOf(followingUserId));
+
+            //更新 cursor 和 offset
+            if (maxTime == score) {
+                newOffset++;
+            } else {
+                newOffset = 1;
+                maxTime = score;
+            }
+        }
+
+        ScrollResult<UserVo> userVoScrollResult = new ScrollResult<>();
+
+        if (userIds.isEmpty()) {
+            return SaResult.data(userVoScrollResult);
+        }
+
+        //查询用户数据库
+        String join = StringUtil.join(userIds, ",");
+        List<User> users = userService.lambdaQuery().in(User::getId, userIds)
+                .select(User::getId, User::getUsername, User::getAvatar)
+                .last("order by field ( id ," + join + ")")
+                .list();
+        List<UserVo> userVoList = BeanUtil.copyToList(users, UserVo.class);
+
+        //封装返回
+        userVoScrollResult.setList(userVoList);
+        userVoScrollResult.setOffset(newOffset);
+        userVoScrollResult.setCursor((long) maxTime);
+
+        return SaResult.data(userVoScrollResult);
+    }
+
+    @Override
+    public SaResult listFansByUserId(Long userId, Long cursor, Integer offset) {
+
+        if (cursor == null) {
+            cursor = Long.MAX_VALUE;
+        }
+        if (offset == null) {
+            offset = 0;
+        }
+
+        //查询缓存是否存在
+        String fansKey = USER_FANS_KEY + userId;
+        Boolean hasKey = redisTemplate.hasKey(fansKey);
+
+        if (!hasKey) {
+            //缓存不存在，查询数据库
+            Map<Long, Long> fansIdAndTime = lambdaQuery().eq(UserFollow::getFollowedUserId, userId)
+                    .list()
+                    .stream()
+                    .collect(Collectors.toMap(UserFollow::getUserId, f -> {
+                        return LocalDateTimeUtil.toEpochMilli(f.getCreateTime());
+                    }));
+
+            //更新数据库
+            for (Map.Entry<Long, Long> entry : fansIdAndTime.entrySet()) {
+                redisTemplate.opsForZSet().add(fansKey, entry.getKey().toString(), entry.getValue());
+            }
+        }
+
+        //查询缓存
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = redisTemplate.opsForZSet().reverseRangeByScoreWithScores(
+                fansKey, 0, cursor, offset, ScrollConstant.SCROLL_LIMIT
+        );
+
+        //解析缓存
+        long maxTime = 0;
+        int newOffset = 1;
+        ArrayList<Long> fansIds = new ArrayList<>(typedTuples.size());
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
+            String fansId = tuple.getValue();
+            Double score = tuple.getScore();
+            fansIds.add(Long.valueOf(fansId));
+
+            //更新 cursor 和偏移量
+            if (maxTime == score) {
+                newOffset++;
+            } else {
+                maxTime = score.longValue();
+                newOffset = 1;
+            }
+        }
+
+        //若缓存中没有数据
+        ScrollResult<UserVo> fansVoScrollResult = new ScrollResult<>();
+        if (fansIds.isEmpty()) {
+            return SaResult.data(fansVoScrollResult);
+        }
+
+        //查询数据库获取粉丝数据
+        String join = StringUtil.join(fansIds, ',');
+        List<User> users = userService.lambdaQuery()
+                .select(User::getId, User::getUsername, User::getAvatar)
+                .last("order by field (id , " + join + ")")
+                .list();
+
+        //封装后返回
+        List<UserVo> fansVo = BeanUtil.copyToList(users, UserVo.class);
+        fansVoScrollResult.setList(fansVo);
+        fansVoScrollResult.setOffset(newOffset);
+        fansVoScrollResult.setCursor(maxTime);
+        return SaResult.data(fansVoScrollResult);
     }
 }

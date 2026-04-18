@@ -30,13 +30,13 @@ public class MessageController {
     private StringRedisTemplate redisTemplate;
 
     /**
-     * 注册成功通知
+     * 插入消息通知
      * @param messageDto
      */
-    @RabbitListener(queues = RabbitMQConstant.AUTH_REGISTER_MESSAGE_QUEUE)
-    public void registerMessage(MessageDto messageDto) {
-        log.info("收到注册消息: {}", messageDto);
-        messageService.registerMessage(messageDto);
+    @RabbitListener(queues = {RabbitMQConstant.AUTH_REGISTER_MESSAGE_QUEUE,RabbitMQConstant.LETTER_TO_BE_OPENED_QUEUE})
+    public void addMessage(MessageDto messageDto) {
+        log.info("收到消息: {}", messageDto);
+        messageService.addMessage(messageDto);
     }
 
     /**
@@ -58,6 +58,10 @@ public class MessageController {
         return messageService.listMessage();
     }
 
+    /**
+     * 被关注通知
+     * @param followingRabbitDto
+     */
     @RabbitListener(queues = USER_FOLLOWING_MESSAGE_QUEUE)
     public void followingMessage(FollowingRabbitDto followingRabbitDto) {
 
@@ -69,4 +73,5 @@ public class MessageController {
             messageService.followingMessage(followingRabbitDto);
         }
     }
+
 }

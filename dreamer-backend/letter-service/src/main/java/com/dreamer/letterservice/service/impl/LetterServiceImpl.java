@@ -3,8 +3,12 @@ package com.dreamer.letterservice.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.message.SystemMessage;
 import com.dreamer.letterservice.constant.LetterConstant;
 import com.dreamer.letterservice.entity.dto.FutureLetterDto;
@@ -12,27 +16,39 @@ import com.dreamer.letterservice.entity.pojo.FutureLetter;
 import com.dreamer.letterservice.feign.UserFeignClient;
 import com.dreamer.letterservice.mapper.LetterMapper;
 import com.dreamer.letterservice.service.ILetterService;
+import com.dreamer.letterservice.utils.AliOSSUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.dreamer.letterservice.constant.LetterConstant.LETTER_IS_NOT_OPENED;
+import static com.dreamer.common.constant.RabbitMQConstant.DELAY_EXCHANGE_NAME;
+import static com.dreamer.common.constant.RabbitMQConstant.LETTER_TO_BE_OPENED_KEY;
+import static com.dreamer.letterservice.constant.LetterConstant.*;
 import static com.dreamer.letterservice.key.LockKey.LETTER_SUBMIT_LOCK;
 import static com.dreamer.letterservice.message.LetterMessage.LETTER_SUBMIT_SUCCESS;
 import static com.dreamer.letterservice.message.LetterMessage.LETTER_UPLOAD_IMAGES_ERROR;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> implements ILetterService {
 
     private final RedissonClient redissonClient;
     private final UserFeignClient userFeignClient;
+    private final AliOSSUtil aliOSSUtil;
+    private final RabbitTemplate rabbitTemplate;
+    private final LetterMapper letterMapper;
 
     @Override
     public SaResult queryOpenLettersByUserId(String userId) {
@@ -47,9 +63,17 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
     }
 
     @Override
+    @Transactional
     public SaResult addLetter(FutureLetterDto futureLetterDto) {
 
         long userId = StpUtil.getLoginIdAsLong();
+        log.info("用户:{} 添加了新信件: {}", userId, futureLetterDto);
+
+        //开启时间必须合法
+        LocalDate localDateNow = LocalDate.now();
+        if (futureLetterDto.getOpenTime().isBefore(localDateNow)) {
+            return SaResult.error(SystemMessage.SYSTEM_ERROR);
+        }
 
         //加锁
         String lockKey = LETTER_SUBMIT_LOCK + userId;
@@ -71,6 +95,7 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
                 return SaResult.error(SystemMessage.SYSTEM_ERROR);
             }
 
+            //seata 做事务（由于 mac 和 docker 网络问题，尝试 1 天后docker 部署失败）
             //若上传图片，则耗费 50 粒「质子」（用户等级必须达到 20 级）
             if (!StrUtil.isEmpty(futureLetterDto.getImg())) {
                 SaResult uploadImagesWithProtonCost = userFeignClient.uploadImagesWithProtonCost(userId);
@@ -80,12 +105,38 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
             }
 
             //封装信件并保存
+            LocalDateTime now = LocalDateTime.now();
             FutureLetter futureLetter = BeanUtil.copyProperties(futureLetterDto, FutureLetter.class);
             futureLetter.setUserId(userId);
-            futureLetter.setCreateTime(LocalDateTime.now());
+            futureLetter.setCreateTime(now);
             boolean save = save(futureLetter);
             if (!save) {
                 return SaResult.error(SystemMessage.SYSTEM_ERROR);
+            }
+
+
+            //计算信件开启需要的计时时间戳(超过 1 年不提供消息推送)，并使用rabbitMQ 异步通信计时开信时间
+            LocalDate openTime = futureLetterDto.getOpenTime();
+            boolean isBefore = openTime.isBefore(localDateNow.plusYears(1));
+            if (isBefore) {
+                long openedMilli = LocalDateTimeUtil.toEpochMilli(openTime);
+                long nowMilli = LocalDateTimeUtil.toEpochMilli(localDateNow);
+                long delayMilli = openedMilli - nowMilli;
+                if (delayMilli <= 0) {
+                    return SaResult.error(SystemMessage.SYSTEM_ERROR);
+                }
+
+                MessageDto messageDto = MessageDto.builder()
+                        .type(9)
+                        .createTime(LocalDateTime.now())
+                        .content("叮～ 您有一封来自过去的信件，记得去查看哟～")
+                        .sendId(userId)
+                        .build();
+                rabbitTemplate.convertAndSend(DELAY_EXCHANGE_NAME, LETTER_TO_BE_OPENED_KEY, messageDto,
+                        message -> {
+                            message.getMessageProperties().setHeader("x-delay", delayMilli);
+                            return message;
+                        });
             }
 
             return SaResult.ok(LETTER_SUBMIT_SUCCESS);
@@ -97,4 +148,90 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
             }
         }
     }
+
+    @Override
+    public SaResult uploadImages(MultipartFile img) {
+
+        long userId = StpUtil.getLoginIdAsLong();
+        log.info("用户 {} 尝试信封上传图片", userId);
+
+        try {
+            String url = aliOSSUtil.addAli(img);
+            return SaResult.ok(url);
+        } catch (IOException e) {
+            log.error("信封图片上传失败 : {}", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public SaResult removeLetter(Long letterId) {
+        long userId = StpUtil.getLoginIdAsLong();
+
+        FutureLetter letter = getById(letterId);
+        //删除信件
+        boolean remove = lambdaUpdate().eq(FutureLetter::getUserId, userId)
+                .eq(FutureLetter::getIsOpen, LetterConstant.LETTER_IS_OPENED)
+                .eq(FutureLetter::getId, letterId)
+                .remove();
+        if (!remove) {
+            return SaResult.error(SystemMessage.SYSTEM_ERROR);
+        }
+
+        //阿里云删除图片
+        aliOSSUtil.removeAli(letter.getImg());
+
+        return SaResult.ok("删除成功");
+    }
+
+    @Override
+    public SaResult unopenedLetterIsExist() {
+
+        long userId = StpUtil.getLoginIdAsLong();
+
+        boolean exists = lambdaQuery().eq(FutureLetter::getUserId, userId)
+                .eq(FutureLetter::getIsOpen, LETTER_IS_NOT_OPENED)
+                .exists();
+        if (exists) {
+            return SaResult.ok(LETTER_UNOPENED_EXIST);
+        }
+        return SaResult.ok(LETTER_UNOPENED_NOT_EXIST);
+    }
+
+    @Override
+    public SaResult queryLetterToBeOpened() {
+
+        long userId = StpUtil.getLoginIdAsLong();
+
+        FutureLetter letter = lambdaQuery().eq(FutureLetter::getUserId, userId)
+                .le(FutureLetter::getOpenTime, LocalDate.now())
+                .eq(FutureLetter::getIsOpen, LETTER_IS_NOT_OPENED)
+                .one();
+
+        //修改信件为已读
+        lambdaUpdate().eq(FutureLetter::getId, letter.getId())
+                .set(FutureLetter::getIsOpen, LETTER_IS_OPENED)
+                .update();
+
+        return SaResult.data(letter);
+    }
+
+    @Override
+    public SaResult listOpenedLetters(Integer page, Integer size) {
+
+        long userId = StpUtil.getLoginIdAsLong();
+
+        //mybatisplus 实现分页查询业务
+        LambdaQueryWrapper<FutureLetter> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(FutureLetter::getIsOpen, LETTER_IS_OPENED)
+                .eq(FutureLetter::getUserId,userId)
+                .orderByDesc(FutureLetter::getOpenTime);
+
+        Page<FutureLetter> futureLetterPage = new Page<>(page, size);
+
+        Page<FutureLetter> pageResult = letterMapper.selectPage(futureLetterPage, wrapper);
+
+        return SaResult.data(pageResult);
+    }
+
 }

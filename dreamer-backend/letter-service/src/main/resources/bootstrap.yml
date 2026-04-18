@@ -15,3 +15,5 @@ spring:
       # 服务注册发现
       discovery:
         server-addr: 127.0.0.1:8848
+  profiles:
+    active: prod

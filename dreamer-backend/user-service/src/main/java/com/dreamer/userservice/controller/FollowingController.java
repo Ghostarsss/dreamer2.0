@@ -14,6 +14,7 @@ public class FollowingController {
 
     /**
      * 关注用户
+     *
      * @param userId
      * @return
      */
@@ -24,6 +25,7 @@ public class FollowingController {
 
     /**
      * 取消关注用户
+     *
      * @param userId
      * @return
      */
@@ -34,13 +36,14 @@ public class FollowingController {
 
     /**
      * 滚动查询我的关注
+     *
      * @param cursor
      * @param offset
      * @return
      */
     @GetMapping("/me/following")
     public SaResult listMeFollowing(@RequestParam(required = false) Long cursor,
-                                 @RequestParam(required = false) Integer offset) {
+                                    @RequestParam(required = false) Integer offset) {
 
         return followingService.listMeFollowing(cursor, offset);
 
@@ -48,6 +51,7 @@ public class FollowingController {
 
     /**
      * 滚动查询我的粉丝
+     *
      * @param cursor
      * @param offset
      * @return
@@ -59,20 +63,31 @@ public class FollowingController {
         return followingService.listMeFans(cursor, offset);
     }
 
-    //TODO 指定用户滚动查询关注
+    /**
+     * 指定用户滚动查询关注
+     *
+     * @return
+     */
     @GetMapping("/{userId}/following")
-    public SaResult listFollowingByUserId() {
-        return null;
+    public SaResult listFollowingByUserId(@PathVariable Long userId, @RequestParam(required = false) Long cursor
+            , @RequestParam(required = false) Integer offset) {
+        return followingService.listFollowingByUserId(userId, cursor, offset);
     }
 
-    //TODO 指定用户滚动查询粉丝
+    /**
+     * 指定用户滚动查询粉丝
+     *
+     * @return
+     */
     @GetMapping("/{userId}/fans")
-    public SaResult listFansByUserId() {
-        return null;
+    public SaResult listFansByUserId(@PathVariable Long userId, @RequestParam(required = false) Long cursor
+            , @RequestParam(required = false) Integer offset) {
+        return followingService.listFansByUserId(userId,cursor,offset);
     }
 
     /**
      * 移除粉丝
+     *
      * @param userId
      * @return
      */

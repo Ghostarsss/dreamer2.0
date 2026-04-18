@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -30,23 +32,28 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
     @Transactional
     @Override
-    public void registerMessage(MessageDto messageDto) {
+    public void addMessage(MessageDto messageDto) {
 
-        //把一个 message 类拆成两个数据库分别对应的消息模版类和用户消息类
+        //把一个 message 类拆成消息模版类
         MessageTemplate messageTemplate = BeanUtil.copyProperties(messageDto, MessageTemplate.class);
-        UserMessage userMessage = BeanUtil.copyProperties(messageDto, UserMessage.class);
+
 
         //先插入消息模板，因为要拿到 messageId
         boolean save = save(messageTemplate);
         if (!save) {
-            log.error("注册成功消息模板插入失败,用户来自: {}", userMessage.getUserId());
-            throw new RuntimeException("用户消息插入失败");
+            log.error("消息模板插入失败");
+            throw new RuntimeException("消息模板插入失败");
         }
 
+        //如果是消息广播，则不需要插入用户消息
+        if (messageDto.getIsBroadcast() == MessageConstant.IS_BROADCAST_TYPE) {
+            return;
+        }
+        UserMessage userMessage = BeanUtil.copyProperties(messageDto, UserMessage.class);
         userMessage.setMessageId(messageTemplate.getId());
         int insert = userMessageMapper.insert(userMessage);
         if (insert == 0) {
-            log.error("注册成功用户消息插入失败,用户来自: {}", userMessage.getUserId());
+            log.error("消息插入失败,用户来自: {}", userMessage.getUserId());
             throw new RuntimeException("用户消息插入失败");
         }
     }
@@ -64,7 +71,16 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
         int userId = StpUtil.getSession().getInt("userId");
         //查询消息
-        List<MessageDto> messageDtoList = userMessageMapper.listMessage(userId);
+        List<MessageDto> userMessageDtoList = userMessageMapper.listMessage(userId);
+        List<MessageTemplate> list = lambdaQuery()
+                .eq(MessageTemplate::getIsBroadcast, MessageConstant.IS_BROADCAST_TYPE)
+                .list();
+        List<MessageDto> broadcastMessageDtoList = BeanUtil.copyToList(list, MessageDto.class);
+
+        //用户消息和广播消息排序
+        List<MessageDto> messageDtoList = Stream.concat(userMessageDtoList.stream(), broadcastMessageDtoList.stream())
+                .sorted(Comparator.comparing(MessageDto::getCreateTime).reversed())
+                .toList();
 
         //消息改为已读
         userMessageMapper.isRead(userId);
@@ -78,7 +94,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         LocalDateTime now = LocalDateTime.now();
         //插入消息模板
         MessageTemplate messageTemplate = new MessageTemplate();
-        messageTemplate.setContent(followingRabbitDto.getFansUsername()+ " 关注了你");
+        messageTemplate.setContent(followingRabbitDto.getFansUsername() + " 关注了你");
         messageTemplate.setType(MessageConstant.FOLLOW_MESSAGE_TYPE);
         messageTemplate.setCreateTime(now);
         save(messageTemplate);
@@ -90,6 +106,5 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         userMessage.setMessageId(messageTemplate.getId());
         userMessageMapper.insert(userMessage);
     }
-
 
 }
