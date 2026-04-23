@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: post-service
+
+server:
+  port: 8105
+
+logging:
+  file:
+    path: post-service/logs/post-serice.log

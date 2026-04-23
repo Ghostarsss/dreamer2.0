@@ -131,6 +131,7 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
                         .createTime(LocalDateTime.now())
                         .content("叮～ 您有一封来自过去的信件，记得去查看哟～")
                         .sendId(userId)
+                        .userId(userId)
                         .build();
                 rabbitTemplate.convertAndSend(DELAY_EXCHANGE_NAME, LETTER_TO_BE_OPENED_KEY, messageDto,
                         message -> {

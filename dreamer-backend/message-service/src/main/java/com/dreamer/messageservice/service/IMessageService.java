@@ -15,4 +15,8 @@ public interface IMessageService extends IService<MessageTemplate> {
     SaResult listMessage();
 
     void followingMessage(FollowingRabbitDto followingRabbitDto);
+
+    void postOrCommentLikedMessage(MessageDto messageDto);
+
+    void commentedMessage(MessageDto messageDto);
 }

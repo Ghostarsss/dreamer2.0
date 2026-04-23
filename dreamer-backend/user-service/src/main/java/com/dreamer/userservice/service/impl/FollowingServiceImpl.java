@@ -14,14 +14,15 @@ import com.dreamer.common.entity.pojo.User;
 import com.dreamer.common.entity.result.ScrollResult;
 import com.dreamer.common.message.SystemMessage;
 import com.dreamer.common.message.UserMessage;
-import com.dreamer.userservice.constant.UserConstant;
+import com.dreamer.common.constant.UserConstant;
 import com.dreamer.userservice.entity.pojo.UserFollow;
-import com.dreamer.userservice.entity.vo.UserVo;
+import com.dreamer.common.entity.vo.UserVo;
 import com.dreamer.userservice.key.LockKey;
 import com.dreamer.userservice.mapper.FollowingMapper;
 import com.dreamer.userservice.message.FollowingMessage;
 import com.dreamer.userservice.service.IFollowingService;
 import com.dreamer.userservice.service.IUserService;
+import com.dreamer.userservice.utils.LevelUtil;
 import jodd.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -157,6 +158,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         if (cursor == null) {
             cursor = Long.MAX_VALUE;
         }
+
         if (offset == null) {
             offset = 0;
         }
@@ -218,10 +220,14 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //数据库查询用户信息
         String join = String.join(",", userIds);
         List<User> users = userService.lambdaQuery().in(User::getId, userIds)
-                .select(User::getId, User::getUsername, User::getAvatar)
+                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
                 .last("order by field ( id ," + join + ")")
                 .list();
         List<UserVo> userVoList = BeanUtil.copyToList(users, UserVo.class);
+        //计算用户等级
+        userVoList.forEach(u -> {
+            u.setLevel(LevelUtil.calculateLevel(u.getExp()));
+        });
 
         //封装返回
         userVoScrollResult.setList(userVoList);
@@ -310,11 +316,16 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
 
         //滚动查询粉丝数据
         String join = StringUtil.join(fansIds, ',');
-        List<User> fans = userService.lambdaQuery().select(User::getId, User::getUsername, User::getAvatar)
+        List<User> fans = userService.lambdaQuery()
+                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
                 .in(User::getId, fansIds)
                 .last("order by field ( id ," + join + ")")
                 .list();
         List<UserVo> userVoList = BeanUtil.copyToList(fans, UserVo.class);
+        //计算用户等级
+        userVoList.forEach(u -> {
+            u.setLevel(LevelUtil.calculateLevel(u.getExp()));
+        });
 
         //封装返回数据
         fansScrollResult.setList(userVoList);
@@ -349,9 +360,6 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         if (cursor == null) {
             cursor = Long.MAX_VALUE;
         }
-        if (offset == null) {
-            offset = 0;
-        }
 
         //查询缓存
         String followingKey = USER_FOLLOWING_KEY + userId;
@@ -377,9 +385,18 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
             }
         }
 
+        int scrollLimit;
+        if (offset == null) {
+            //查询关注用户文章时 openfeign 远程需要全查
+            scrollLimit = Integer.MAX_VALUE;
+            offset = 0;
+        } else {
+            scrollLimit = ScrollConstant.SCROLL_LIMIT;
+        }
+
         //查询缓存
         Set<ZSetOperations.TypedTuple<String>> typedTuples = redisTemplate.opsForZSet().reverseRangeByScoreWithScores(
-                followingKey, 0, cursor, offset, ScrollConstant.SCROLL_LIMIT
+                followingKey, 0, cursor, offset, scrollLimit
         );
 
         //解析缓存
@@ -410,10 +427,14 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //查询用户数据库
         String join = StringUtil.join(userIds, ",");
         List<User> users = userService.lambdaQuery().in(User::getId, userIds)
-                .select(User::getId, User::getUsername, User::getAvatar)
+                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
                 .last("order by field ( id ," + join + ")")
                 .list();
         List<UserVo> userVoList = BeanUtil.copyToList(users, UserVo.class);
+        //计算用户等级
+        userVoList.forEach(u -> {
+            u.setLevel(LevelUtil.calculateLevel(u.getExp()));
+        });
 
         //封装返回
         userVoScrollResult.setList(userVoList);
@@ -484,12 +505,17 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //查询数据库获取粉丝数据
         String join = StringUtil.join(fansIds, ',');
         List<User> users = userService.lambdaQuery()
-                .select(User::getId, User::getUsername, User::getAvatar)
+                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
                 .last("order by field (id , " + join + ")")
                 .list();
 
         //封装后返回
         List<UserVo> fansVo = BeanUtil.copyToList(users, UserVo.class);
+        //计算用户等级
+        fansVo.forEach(u -> {
+            u.setLevel(LevelUtil.calculateLevel(u.getExp()));
+        });
+
         fansVoScrollResult.setList(fansVo);
         fansVoScrollResult.setOffset(newOffset);
         fansVoScrollResult.setCursor(maxTime);

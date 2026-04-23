@@ -1,6 +1,5 @@
 package com.dreamer.userservice.controller;
 
-import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
@@ -10,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import com.dreamer.common.entity.dto.LoginDto;
 import org.springframework.web.multipart.MultipartFile;
 
-import static com.dreamer.userservice.constant.UserConstant.USER_SUPER_ADMIN_ROLE;
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -110,5 +109,25 @@ public class UserController {
     @GetMapping("/{userId}/open-letters")
     public SaResult queryOpenLettersByUserId(@PathVariable String userId) {
         return userService.queryOpenLettersByUserId(userId);
+    }
+
+    /**
+     * 判断当前用户是否被封禁
+     * @param userId
+     * @return
+     */
+    @GetMapping("/isBaned")
+    public SaResult isBaned(long userId) {
+        return userService.isBaned(userId);
+    }
+
+    /**
+     * 批量查询用户信息
+     * @param userIds
+     * @return
+     */
+    @PostMapping("/batch-query-user")
+    public SaResult batchQueryUserByUserId(@RequestBody List<Long> userIds) {
+        return userService.batchQueryUserByUserId(userIds);
     }
 }

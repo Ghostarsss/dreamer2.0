@@ -2,10 +2,17 @@ package com.dreamer.userservice.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.dreamer.common.constant.EXPConstant;
+import com.dreamer.common.constant.UserConstant;
+import com.dreamer.common.entity.dto.EXPRabbitDto;
+import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.pojo.User;
+import com.dreamer.common.entity.vo.PostVo;
 import com.dreamer.common.message.SystemMessage;
 import com.dreamer.userservice.constant.VPConstant;
+import com.dreamer.userservice.feign.PostFeignClient;
 import com.dreamer.userservice.key.RedisKey;
 import com.dreamer.userservice.mapper.VPMapper;
 import com.dreamer.userservice.message.VPMessage;
@@ -32,6 +39,7 @@ public class VPServiceImpl extends ServiceImpl<VPMapper, User> implements IVPSer
 
     private final RedissonClient redissonClient;
     private final StringRedisTemplate redisTemplate;
+    private final PostFeignClient postFeignClient;
 
     @Override
     public SaResult sign() {
@@ -138,12 +146,49 @@ public class VPServiceImpl extends ServiceImpl<VPMapper, User> implements IVPSer
         //用户等级达到 20 级，扣减「原子」
         boolean update = lambdaUpdate().eq(User::getId, userId)
                 .ge(User::getProton, 50)
-                .ge(User::getExp,36100)
+                .ge(User::getExp, 36100)
                 .setSql("proton = proton - 100")
                 .update();
         if (!update) {
             return SaResult.error();
         }
         return SaResult.ok();
+    }
+
+    @Override
+    public void followingEXP(EXPRabbitDto expRabbitDto) {
+        lambdaUpdate()
+                .setSql("exp = exp + " + expRabbitDto.getExpIncrement())
+                .eq(User::getId, expRabbitDto.getUserId())
+                .update();
+    }
+
+    @Override
+    public void PostLikedEXP(MessageDto messageDto) {
+        //feign 查询文章作者 id
+        SaResult saResult = postFeignClient.queryPostByPostId(messageDto.getPostId());
+        Long userId = BeanUtil.copyProperties(saResult.getData(), PostVo.class).getUserId();
+
+
+        lambdaUpdate()
+                .setSql("exp = exp + " + TINY_EXP)
+                .eq(User::getId, userId)
+                .update();
+    }
+
+    @Override
+    public SaResult deductProton(Long userId, Integer protons) {
+
+        //扣减质子数
+        boolean update = lambdaUpdate().eq(User::getId, userId)
+                .ge(User::getProton, protons)
+                .ne(User::getStatus, UserConstant.USER_IS_BANNED)
+                .setSql("proton = proton -" + protons)
+                .update();
+        if (!update) {
+            return SaResult.error(VPMessage.BALANCE_IS_INSUFFICIENT_MESSAGE);
+        }
+
+        return SaResult.ok(VPMessage.POST_TIP_PROTON_SUCCESS);
     }
 }

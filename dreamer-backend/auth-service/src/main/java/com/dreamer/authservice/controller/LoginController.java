@@ -13,11 +13,20 @@ public class LoginController {
     @Autowired
     private ILoginService loginService;
 
+    /**
+     * 登录
+     * @param loginDto
+     * @return
+     */
     @PostMapping
     public SaResult login(@RequestBody LoginDto loginDto) {
         return loginService.login(loginDto);
     }
 
+    /**
+     * 登出
+     * @return
+     */
     @DeleteMapping("/out")
     public SaResult logout() {
         return loginService.logout();

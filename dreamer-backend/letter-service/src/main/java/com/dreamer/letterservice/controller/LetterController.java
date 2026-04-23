@@ -15,6 +15,11 @@ public class LetterController {
 
     private final ILetterService letterService;
 
+    /**
+     * 查询指定用户公开信件
+     * @param userId
+     * @return
+     */
     @GetMapping("/queryOpenLettersByUserId")
     public SaResult queryOpenLettersByUserId(String userId) {
 

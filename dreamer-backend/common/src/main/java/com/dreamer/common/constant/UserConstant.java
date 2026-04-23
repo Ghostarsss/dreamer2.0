@@ -1,4 +1,4 @@
-package com.dreamer.userservice.constant;
+package com.dreamer.common.constant;
 
 public class UserConstant {
 

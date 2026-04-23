@@ -13,4 +13,16 @@ public class RabbitMQConstant {
     public static final String LETTER_TO_BE_OPENED_KEY = "letter.toBeOpened.key";
 
     public static final String DELAY_EXCHANGE_NAME = "delay-exchange";
+
+    public static final String POST_DELETE_COMMENT_LIKE_QUEUE = "post.delete.comment.like.queue";
+
+    public static final String POST_LIKE_INCREMENT_EXP_QUEUE = "post.like.increment.exp.queue";
+
+    public static final String POST_LIKE_MESSAGE_QUEUE = "post.like.message.queue";
+
+    public static final String POST_LIKE_DB_SYNC_QUEUE = "post.like.db.sync.queue";
+
+    public static final String POST_COMMENT_MESSAGE_QUEUE = "post.comment.message.queue";
+
+    public static final String POST_TIP_PROTON_MESSAGE_QUEUE = "post.tip.proton.message.queue";
 }

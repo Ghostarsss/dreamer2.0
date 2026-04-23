@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.dreamer.userservice.constant.UserConstant.*;
+import static com.dreamer.common.constant.UserConstant.*;
 
 /**
  * 自定义权限加载接口实现类

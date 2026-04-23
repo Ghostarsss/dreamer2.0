@@ -10,7 +10,7 @@ spring:
         - id: internal-api-block
           uri: lb://auth-service
           predicates:
-            - Path=/vp/letter-upload-images
+            - Path=/vp/letter-upload-images,/vp/deduct-proton/**
           filters:
             - SetStatus=403
 
@@ -33,6 +33,11 @@ spring:
           uri: lb://letter-service
           predicates:
             - Path=/letters/**
+
+        - id: post-service
+          uri: lb://post-service
+          predicates:
+            - Path=/posts/**,/likes/**,/comments/**
 
     sentinel:
       transport:

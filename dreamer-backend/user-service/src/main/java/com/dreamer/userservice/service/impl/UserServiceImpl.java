@@ -12,7 +12,7 @@ import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
 import com.dreamer.common.utils.PasswordUtil;
-import com.dreamer.userservice.entity.vo.UserVo;
+import com.dreamer.common.entity.vo.UserVo;
 import com.dreamer.userservice.feign.LetterFeignClient;
 import com.dreamer.userservice.key.LockKey;
 import com.dreamer.userservice.mapper.UserMapper;
@@ -20,12 +20,12 @@ import com.dreamer.userservice.service.IUserService;
 import com.dreamer.userservice.utils.AliOSSUtil;
 import com.dreamer.userservice.utils.LevelUtil;
 import com.dreamer.userservice.utils.MailUtil;
+import jodd.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -41,7 +41,7 @@ import static com.dreamer.common.message.CodeMessage.*;
 import static com.dreamer.common.message.SystemMessage.OPERATION_FREQUENT;
 import static com.dreamer.common.message.SystemMessage.SYSTEM_ERROR;
 import static com.dreamer.common.message.UserMessage.*;
-import static com.dreamer.userservice.constant.UserConstant.USER_IS_BANNED;
+import static com.dreamer.common.constant.UserConstant.USER_IS_BANNED;
 import static com.dreamer.userservice.key.RedisKey.EMAIL_REDIS_CODE_COOLDOWN_KEY;
 import static com.dreamer.userservice.key.RedisKey.EMAIL_REDIS_VERIFY_CODE_KEY;
 import static com.dreamer.userservice.message.RegisterMessage.PASSWORD_ERROR;
@@ -118,6 +118,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         StpUtil.login(userId);
         //缓存 user 对象信息
         StpUtil.getSession().set("userId", userId);
+        StpUtil.getSession().set("username", user.getUsername());
         //添加角色权限
         return SaResult.ok(LOGIN_SUCCESS);
     }
@@ -302,10 +303,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
-    public void followingEXP(EXPRabbitDto expRabbitDto) {
-        lambdaUpdate()
-                .setSql("exp = exp + " + expRabbitDto.getExpIncrement())
-                .eq(User::getId, expRabbitDto.getUserId())
-                .update();
+    public SaResult isBaned(long userId) {
+
+        User user = lambdaQuery().eq(User::getId, userId)
+                .select(User::getStatus)
+                .one();
+
+        if (user == null) {
+            return SaResult.error(USER_NOT_EXISTS);
+        }
+
+        return SaResult.data(user.getId());
+    }
+
+    @Override
+    public SaResult batchQueryUserByUserId(List<Long> userIds) {
+
+        if (userIds == null) {
+            return SaResult.error();
+        }
+
+        //批量查所有用户
+        String join = StringUtil.join(userIds, ',');
+        List<User> users = lambdaQuery().in(User::getId, userIds)
+                .last("order by field (id, " + join + ")")
+                .list();
+
+        List<UserVo> userVos = BeanUtil.copyToList(users, UserVo.class);
+        userVos.forEach(u -> {
+            int level = LevelUtil.calculateLevel(u.getExp());
+            u.setLevel(level);
+        });
+
+        return SaResult.data(userVos);
     }
 }

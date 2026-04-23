@@ -8,6 +8,8 @@ import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface IUserService extends IService<User> {
 
     SaResult register(User user);
@@ -26,5 +28,7 @@ public interface IUserService extends IService<User> {
 
     SaResult queryOpenLettersByUserId(String userId);
 
-    void followingEXP(EXPRabbitDto expRabbitDto);
+    SaResult isBaned(long userId);
+
+    SaResult batchQueryUserByUserId(List<Long> userIds);
 }

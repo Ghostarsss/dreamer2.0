@@ -29,15 +29,6 @@ public class MessageController {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
-    /**
-     * 插入消息通知
-     * @param messageDto
-     */
-    @RabbitListener(queues = {RabbitMQConstant.AUTH_REGISTER_MESSAGE_QUEUE,RabbitMQConstant.LETTER_TO_BE_OPENED_QUEUE})
-    public void addMessage(MessageDto messageDto) {
-        log.info("收到消息: {}", messageDto);
-        messageService.addMessage(messageDto);
-    }
 
     /**
      * 查询该用户未读消息数
@@ -56,22 +47,6 @@ public class MessageController {
     @GetMapping
     public SaResult listMessage() {
         return messageService.listMessage();
-    }
-
-    /**
-     * 被关注通知
-     * @param followingRabbitDto
-     */
-    @RabbitListener(queues = USER_FOLLOWING_MESSAGE_QUEUE)
-    public void followingMessage(FollowingRabbitDto followingRabbitDto) {
-
-        //使用 redis 防止重复关注推送信息
-        String lock = FOLLOWING_MESSAGE_KEY + followingRabbitDto.getFollowedId() + "_" + followingRabbitDto.getFansId();
-        Boolean isSendFollowingMessage = redisTemplate.opsForValue().setIfAbsent(lock, "", 24, TimeUnit.HOURS);
-
-        if (Boolean.TRUE.equals(isSendFollowingMessage)) {
-            messageService.followingMessage(followingRabbitDto);
-        }
     }
 
 }

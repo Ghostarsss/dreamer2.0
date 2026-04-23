@@ -35,9 +35,24 @@ public class MessageDto {
     private Integer isBroadcast;
 
     /**
-     * 接收用户ID
+     * 接收用户 ID
      */
     private Long userId;
+
+    /**
+     * 文章 ID
+     */
+    private Long postId;
+
+    /**
+     * 文章作者 ID
+     */
+    private Long postUserId;
+
+    /**
+     * 是否点赞
+     */
+    private int isLike;
 
 
     /**
