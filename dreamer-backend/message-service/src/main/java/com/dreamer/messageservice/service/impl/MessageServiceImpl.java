@@ -7,32 +7,38 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.MessageConstant;
 import com.dreamer.common.entity.dto.FollowingRabbitDto;
 import com.dreamer.common.entity.dto.MessageDto;
-import com.dreamer.common.entity.vo.PostVo;
 import com.dreamer.common.entity.vo.UserVo;
 import com.dreamer.messageservice.entity.pojo.MessageTemplate;
 import com.dreamer.messageservice.entity.pojo.UserMessage;
-import com.dreamer.messageservice.feign.PostFeignClient;
 import com.dreamer.messageservice.feign.UserFeignClient;
 import com.dreamer.messageservice.mapper.MessageTemplateMapper;
 import com.dreamer.messageservice.mapper.UserMessageMapper;
 import com.dreamer.messageservice.service.IMessageService;
+import com.dreamer.messageservice.service.IUserMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
+
+import static com.dreamer.common.constant.MessageConstant.ADMIN_NOTIFY_MESSAGE_TYPE;
+import static com.dreamer.messageservice.message.MessageMessage.NOTIFY_SEND_ERROR;
+import static com.dreamer.messageservice.message.MessageMessage.NOTIFY_SEND_SUCCESS;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, MessageTemplate> implements IMessageService {
 
-    private final UserMessageMapper userMessageMapper;
+    private final IUserMessageService userMessageService;
     private final UserFeignClient userFeignClient;
+    private final UserMessageMapper userMessageMapper;
 
 
     @Transactional
@@ -57,13 +63,29 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         }
         UserMessage userMessage = BeanUtil.copyProperties(messageDto, UserMessage.class);
         userMessage.setMessageId(messageTemplate.getId());
-        userMessage.setUserId(messageDto.getUserId());
         userMessage.setCreateTime(now);
-        int insert = userMessageMapper.insert(userMessage);
-        if (insert == 0) {
-            log.error("消息插入失败,用户来自: {}", userMessage.getUserId());
-            throw new RuntimeException("用户消息插入失败");
+
+        //反馈服务的接收者是全体管理员
+        if (Objects.equals(messageDto.getType(), MessageConstant.FEEDBACK_MESSAGE_TYPE)) {
+
+            //远程查询所有管理员并插入
+            SaResult saResult = userFeignClient.listAdmin();
+            List<Long> adminUserIds = BeanUtil.copyToList((List<?>) saResult.getData(), Long.class);
+            ArrayList<UserMessage> userMessages = new ArrayList<>(adminUserIds.size());
+            adminUserIds.forEach(u -> {
+                UserMessage userMessage2 = BeanUtil.copyProperties(userMessage, UserMessage.class);
+                userMessage2.setUserId(u);
+                userMessages.add(userMessage2);
+            });
+
+            userMessageService.saveBatch(userMessages);
+
+
+        } else {
+            userMessage.setUserId(messageDto.getUserId());
+            userMessageService.save(userMessage);
         }
+
     }
 
     @Override
@@ -219,5 +241,33 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         }
 
     }
+
+    @Override
+    @Transactional
+    public SaResult adminNotifyUser(MessageDto messageDto) {
+
+        LocalDateTime now = LocalDateTime.now();
+        MessageTemplate messageTemplate = new MessageTemplate();
+        messageTemplate.setCreateTime(now);
+        messageTemplate.setType(ADMIN_NOTIFY_MESSAGE_TYPE);
+        messageTemplate.setSendId(messageDto.getUserId());
+        messageTemplate.setContent(messageDto.getContent());
+
+        save(messageTemplate);
+
+        UserMessage userMessage = new UserMessage();
+        userMessage.setCreateTime(now);
+        userMessage.setMessageId(messageTemplate.getId());
+        userMessage.setUserId(messageDto.getSendId());
+
+        boolean saveUserMessage = userMessageService.save(userMessage);
+        if (!saveUserMessage) {
+            log.error("管理员通知保存失败 ：{}", messageDto);
+            return SaResult.error(NOTIFY_SEND_ERROR);
+        }
+
+        return SaResult.ok(NOTIFY_SEND_SUCCESS);
+    }
+
 
 }

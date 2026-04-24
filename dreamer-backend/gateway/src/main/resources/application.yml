@@ -39,6 +39,11 @@ spring:
           predicates:
             - Path=/posts/**,/likes/**,/comments/**
 
+        - id: admin-service
+          uri: lb://admin-service
+          predicates:
+            - Path=/feedbacks/**,/admin/**
+
     sentinel:
       transport:
         dashboard: localhost:9527

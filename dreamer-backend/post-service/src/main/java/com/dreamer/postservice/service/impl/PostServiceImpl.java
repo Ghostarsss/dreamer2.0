@@ -22,6 +22,7 @@ import com.dreamer.postservice.key.LockKey;
 import com.dreamer.postservice.key.RedisKey;
 import com.dreamer.postservice.mapper.PostMapper;
 import com.dreamer.postservice.message.PostMessage;
+import com.dreamer.postservice.service.ICommentService;
 import com.dreamer.postservice.service.ILikesService;
 import com.dreamer.postservice.service.IPostService;
 import io.seata.spring.annotation.GlobalTransactional;
@@ -30,11 +31,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import com.dreamer.common.entity.vo.UserVo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -55,6 +59,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     private final RabbitTemplate rabbitTemplate;
     private final StringRedisTemplate redisTemplate;
     private final ILikesService likesService;
+    @Lazy
+    @Autowired
+    private ICommentService commentService;
 
     @Override
     public SaResult addPost(String content) {
@@ -498,5 +505,28 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                 lock.unlock();
             }
         }
+    }
+
+    @Override
+    @Transactional
+    public void delPostByUserId(Long userId) {
+
+        //删除文章
+        List<Long> postIds = lambdaQuery().eq(Post::getUserId, userId).select(Post::getId).list()
+                .stream().map(Post::getId).toList();
+        if (postIds.isEmpty()) {
+            return;
+        }
+
+        boolean rm = removeBatchByIds(postIds);
+        if (!rm) {
+            throw new RuntimeException("删除用户文章失败");
+        }
+
+        for (Long postId : postIds) {
+            commentService.delCommentsByPostId(postId);
+            likesService.delLikesByPostId(postId);
+        }
+
     }
 }

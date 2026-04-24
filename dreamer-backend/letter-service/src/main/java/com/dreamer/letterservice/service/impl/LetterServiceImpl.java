@@ -235,4 +235,12 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
         return SaResult.data(pageResult);
     }
 
+    @Override
+    public void delLetterByUserId(Long userId) {
+
+        lambdaUpdate().eq(FutureLetter::getUserId, userId)
+                .remove();
+
+    }
+
 }

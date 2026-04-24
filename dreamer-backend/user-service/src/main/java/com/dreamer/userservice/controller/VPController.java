@@ -1,10 +1,9 @@
 package com.dreamer.userservice.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
-import com.dreamer.userservice.service.IUserService;
 import com.dreamer.userservice.service.IVPService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -12,8 +11,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class VPController {
 
-    private final IUserService userService;
-    private final StringRedisTemplate redisTemplate;
     private final IVPService VPService;
 
     /**

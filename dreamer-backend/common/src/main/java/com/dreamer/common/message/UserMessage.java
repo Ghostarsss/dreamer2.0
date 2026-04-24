@@ -20,4 +20,6 @@ public class UserMessage {
 
     public static final String USER_UPDATE_SUCCESS = "用户信息更新成功";
 
+    public static final String USER_NOT_LOGIN = "您还未登录";
+
 }

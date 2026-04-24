@@ -28,7 +28,7 @@ public class MessageConsumer {
      *
      * @param messageDto
      */
-    @RabbitListener(queues = {AUTH_REGISTER_MESSAGE_QUEUE, LETTER_TO_BE_OPENED_QUEUE, POST_TIP_PROTON_MESSAGE_QUEUE})
+    @RabbitListener(queues = {AUTH_REGISTER_MESSAGE_QUEUE, LETTER_TO_BE_OPENED_QUEUE, POST_TIP_PROTON_MESSAGE_QUEUE,FEEDBACK_SUBMIT_MESSAGE_QUEUE})
     public void addMessage(MessageDto messageDto) {
         log.info("收到消息: {}", messageDto);
         messageService.addMessage(messageDto);

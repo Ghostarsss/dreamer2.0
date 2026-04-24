@@ -19,4 +19,6 @@ public interface IMessageService extends IService<MessageTemplate> {
     void postOrCommentLikedMessage(MessageDto messageDto);
 
     void commentedMessage(MessageDto messageDto);
+
+    SaResult adminNotifyUser(MessageDto messageDto);
 }

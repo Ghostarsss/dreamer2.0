@@ -21,4 +21,6 @@ public interface ILetterService extends IService<FutureLetter> {
     SaResult queryLetterToBeOpened();
 
     SaResult listOpenedLetters(Integer page, Integer size);
+
+    void delLetterByUserId(Long userId);
 }

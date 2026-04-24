@@ -1,8 +1,10 @@
-package com.dreamer.userservice.utils;
+package com.dreamer.gateway.utils;
 
 import cn.dev33.satoken.stp.StpInterface;
+import cn.dev33.satoken.stp.StpUtil;
+import cn.dev33.satoken.util.SaResult;
+import cn.hutool.core.bean.BeanUtil;
 import com.dreamer.common.entity.pojo.User;
-import com.dreamer.userservice.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,10 +19,8 @@ import static com.dreamer.common.constant.UserConstant.*;
 @Component    // 保证此类被 SpringBoot 扫描，完成 Sa-Token 的自定义权限验证扩展
 public class StpInterfaceImpl implements StpInterface {
 
-    @Autowired
-    private IUserService userService;
     /**
-     * 返回一个账号所拥有的权限码集合 
+     * 返回一个账号所拥有的权限码集合
      */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
@@ -34,14 +34,13 @@ public class StpInterfaceImpl implements StpInterface {
     public List<String> getRoleList(Object loginId, String loginType) {
 
         //查询用户
-        User user = userService.lambdaQuery().eq(User::getId,loginId).one();
+        int userRole = StpUtil.getSession().getInt("role");
         List<String> list = new ArrayList<String>();
-        Integer role = user.getRole();
 
         //添加用户角色
-        if (role.equals(USER_ADMIN_ROLE_TYPE)) {
+        if (userRole == USER_ADMIN_ROLE_INTEGER) {
             list.add(USER_ADMIN_ROLE);
-        } else if (role.equals(USER_SUPER_ADMIN_ROLE_TYPE)) {
+        } else if (userRole == USER_SUPER_ADMIN_ROLE_INTEGER) {
             list.add(USER_SUPER_ADMIN_ROLE);
         }
 

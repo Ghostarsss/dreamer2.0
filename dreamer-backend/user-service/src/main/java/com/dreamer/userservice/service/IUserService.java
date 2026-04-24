@@ -1,8 +1,8 @@
 package com.dreamer.userservice.service;
 
 import cn.dev33.satoken.util.SaResult;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.dreamer.common.entity.dto.EXPRabbitDto;
 import com.dreamer.common.entity.dto.LoginDto;
 import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
@@ -31,4 +31,16 @@ public interface IUserService extends IService<User> {
     SaResult isBaned(long userId);
 
     SaResult batchQueryUserByUserId(List<Long> userIds);
+
+    SaResult listAdmin();
+
+    Page<User> listUsers(Integer page);
+
+    SaResult changeRole(Long userId, Integer role);
+
+    void editPassword(Long userId, String password);
+
+    SaResult banUser(Long userId);
+
+    SaResult delUser(Long userId);
 }

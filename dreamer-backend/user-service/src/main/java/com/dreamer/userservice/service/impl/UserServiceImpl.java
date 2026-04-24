@@ -4,9 +4,14 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.RabbitMQConstant;
-import com.dreamer.common.entity.dto.EXPRabbitDto;
+import com.dreamer.common.constant.ScrollConstant;
+import com.dreamer.common.entity.base.BaseEntity;
 import com.dreamer.common.entity.dto.LoginDto;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.dto.UserDto;
@@ -35,13 +40,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static com.dreamer.common.constant.MessageConstant.REGISTER_MESSAGE_TYPE;
+import static com.dreamer.common.constant.UserConstant.*;
 import static com.dreamer.common.message.CodeMessage.*;
 import static com.dreamer.common.message.SystemMessage.OPERATION_FREQUENT;
 import static com.dreamer.common.message.SystemMessage.SYSTEM_ERROR;
 import static com.dreamer.common.message.UserMessage.*;
-import static com.dreamer.common.constant.UserConstant.USER_IS_BANNED;
 import static com.dreamer.userservice.key.RedisKey.EMAIL_REDIS_CODE_COOLDOWN_KEY;
 import static com.dreamer.userservice.key.RedisKey.EMAIL_REDIS_VERIFY_CODE_KEY;
 import static com.dreamer.userservice.message.RegisterMessage.PASSWORD_ERROR;
@@ -82,6 +88,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         StpUtil.login(userId);
         //缓存 user 对象信息
         StpUtil.getSession().set("userId", userId);
+        StpUtil.getSession().set("role", REGULAR_USER_ROLE_INTEGER);
         return SaResult.ok();
     }
 
@@ -119,6 +126,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //缓存 user 对象信息
         StpUtil.getSession().set("userId", userId);
         StpUtil.getSession().set("username", user.getUsername());
+        StpUtil.getSession().set("role", user.getRole());
         //添加角色权限
         return SaResult.ok(LOGIN_SUCCESS);
     }
@@ -336,5 +344,96 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         });
 
         return SaResult.data(userVos);
+    }
+
+    @Override
+    public SaResult listAdmin() {
+
+        Stream<Long> adminUserIds = lambdaQuery().in(User::getRole, List.of(USER_ADMIN_ROLE_INTEGER, USER_SUPER_ADMIN_ROLE_INTEGER))
+                .ne(User::getStatus, USER_IS_BANNED)
+                .select(User::getId)
+                .list()
+                .stream()
+                .map(User::getId);
+
+        return SaResult.data(adminUserIds);
+    }
+
+    @Override
+    public Page<User> listUsers(Integer page) {
+
+        Page<User> userPage = new Page<>(page, ScrollConstant.SCROLL_LIMIT);
+        Page<User> pageResult = page(userPage, new LambdaQueryWrapper<User>().orderByDesc(User::getCreateTime, User::getId));
+
+        return pageResult;
+    }
+
+    @Override
+    public SaResult changeRole(Long userId, Integer role) {
+
+        StpUtil.getSessionByLoginId(userId).set("role", role);
+
+        lambdaUpdate().eq(User::getId, userId)
+                .set(User::getRole, role)
+                .update();
+
+        return SaResult.ok("用户角色修改成功");
+    }
+
+    @Override
+    public void editPassword(Long userId, String password) {
+
+        //密码加密
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+        String encode = bCryptPasswordEncoder.encode(password);
+
+        //更新密码
+        lambdaUpdate().eq(User::getId, userId)
+                .set(User::getPassword, encode)
+                .set(BaseEntity::getUpdateTime, LocalDateTime.now())
+                .update();
+
+    }
+
+    @Override
+    public SaResult banUser(Long userId) {
+
+        User user = lambdaQuery().eq(User::getId, userId)
+                .select(User::getStatus)
+                .one();
+        if (user == null) {
+            return SaResult.error(USER_NOT_EXISTS);
+        }
+
+        if (user.getStatus().equals(USER_IS_BANNED)) {
+            //解封操作
+            lambdaUpdate().eq(User::getId, userId)
+                    .set(User::getStatus, USER_IS_UNBANNED)
+                    .update();
+            return SaResult.ok("用户已解封");
+        } else {
+            //封禁操作
+            lambdaUpdate().eq(User::getId, userId)
+                    .set(User::getStatus, USER_IS_BANNED)
+                    .update();
+            //踢出登录
+            StpUtil.logout(userId);
+            return SaResult.ok("用户已封禁");
+        }
+    }
+
+    @Override
+    public SaResult delUser(Long userId) {
+
+        boolean remove = lambdaUpdate().eq(User::getId, userId)
+                .remove();
+        if (!remove) {
+            return SaResult.error(USER_NOT_EXISTS);
+        }
+
+        //rabbitmq 异步删除该用户的文章、评论、信封、关注者、粉丝
+        rabbitTemplate.convertAndSend(RabbitMQConstant.ADMIN_DELETE_USER_EXCHANGE, "", userId);
+
+        return SaResult.ok("用户删除成功");
     }
 }

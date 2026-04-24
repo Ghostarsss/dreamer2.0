@@ -25,4 +25,14 @@ public class RabbitMQConstant {
     public static final String POST_COMMENT_MESSAGE_QUEUE = "post.comment.message.queue";
 
     public static final String POST_TIP_PROTON_MESSAGE_QUEUE = "post.tip.proton.message.queue";
+
+    public static final String FEEDBACK_SUBMIT_MESSAGE_QUEUE = "feedback.submit.message.queue";
+
+    public static final String ADMIN_DELETE_USER_POST_QUEUE = "admin.delete.user.post.queue";
+
+    public static final String ADMIN_DELETE_USER_LETTER_QUEUE = "admin.delete.user.letter.queue";
+
+    public static final String ADMIN_DELETE_USER_FOLLOWING_QUEUE = "admin.delete.user.following.queue";
+
+    public static final String ADMIN_DELETE_USER_EXCHANGE = "admin.delete.user.exchange";
 }

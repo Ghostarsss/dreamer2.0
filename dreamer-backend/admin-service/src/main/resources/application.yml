@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: admin-service
+
+server:
+  port: 8110
+
+logging:
+  file:
+    path: admin-service/logs/admin-serice.log

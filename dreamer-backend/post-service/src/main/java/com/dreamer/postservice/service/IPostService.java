@@ -22,4 +22,6 @@ public interface IPostService extends IService<Post> {
     SaResult listFollowingPost(Long cursor);
 
     SaResult protonPost(Long postId, Integer protons);
+
+    void delPostByUserId(Long userId);
 }

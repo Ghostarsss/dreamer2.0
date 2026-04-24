@@ -1,6 +1,7 @@
 package com.dreamer.userservice.controller;
 
 import cn.dev33.satoken.util.SaResult;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
 import com.dreamer.userservice.service.IUserService;
@@ -129,5 +130,65 @@ public class UserController {
     @PostMapping("/batch-query-user")
     public SaResult batchQueryUserByUserId(@RequestBody List<Long> userIds) {
         return userService.batchQueryUserByUserId(userIds);
+    }
+
+    /**
+     * 查询所有管理员
+     * @return
+     */
+    @GetMapping("/all-admin")
+    public SaResult listAdmin() {
+        return userService.listAdmin();
+    }
+
+    /**
+     * 管理员分页查询所有用户
+     * @param page
+     * @return
+     */
+    @GetMapping("/admin/all-users")
+    public Page<User> listUsers(@RequestParam("page") Integer page) {
+        return userService.listUsers(page);
+    }
+
+    /**
+     * 管理员修改用户权限
+     * @param userId
+     * @param role
+     * @return
+     */
+    @PutMapping("/admin/change-role")
+    public SaResult changeRole(@RequestParam("userId") Long userId, @RequestParam("role") Integer role) {
+        return userService.changeRole(userId, role);
+    }
+
+    /**
+     * 管理员修改用户密码
+     * @param userId
+     * @param password
+     */
+    @PutMapping("/admin/password-edit")
+    public void editPassword(@RequestParam("userId") Long userId,@RequestParam("password") String password) {
+        userService.editPassword(userId, password);
+    }
+
+    /**
+     * 管理员禁用/解除禁用用户
+     * @param userId
+     * @return
+     */
+    @PutMapping("/admin/ban")
+    SaResult banUser(@RequestParam("userId") Long userId) {
+        return userService.banUser(userId);
+    }
+
+    /**
+     * 管理员删除用户
+     * @param userId
+     * @return
+     */
+    @DeleteMapping("/admin/delete")
+    SaResult delUser(@RequestParam("userId") Long userId) {
+        return userService.delUser(userId);
     }
 }

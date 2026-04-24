@@ -18,6 +18,7 @@ import com.dreamer.common.constant.UserConstant;
 import com.dreamer.userservice.entity.pojo.UserFollow;
 import com.dreamer.common.entity.vo.UserVo;
 import com.dreamer.userservice.key.LockKey;
+import com.dreamer.userservice.key.RedisKey;
 import com.dreamer.userservice.mapper.FollowingMapper;
 import com.dreamer.userservice.message.FollowingMessage;
 import com.dreamer.userservice.service.IFollowingService;
@@ -220,7 +221,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //数据库查询用户信息
         String join = String.join(",", userIds);
         List<User> users = userService.lambdaQuery().in(User::getId, userIds)
-                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
+                .select(User::getId, User::getUsername, User::getAvatar, User::getExp)
                 .last("order by field ( id ," + join + ")")
                 .list();
         List<UserVo> userVoList = BeanUtil.copyToList(users, UserVo.class);
@@ -317,7 +318,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //滚动查询粉丝数据
         String join = StringUtil.join(fansIds, ',');
         List<User> fans = userService.lambdaQuery()
-                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
+                .select(User::getId, User::getUsername, User::getAvatar, User::getExp)
                 .in(User::getId, fansIds)
                 .last("order by field ( id ," + join + ")")
                 .list();
@@ -427,7 +428,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //查询用户数据库
         String join = StringUtil.join(userIds, ",");
         List<User> users = userService.lambdaQuery().in(User::getId, userIds)
-                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
+                .select(User::getId, User::getUsername, User::getAvatar, User::getExp)
                 .last("order by field ( id ," + join + ")")
                 .list();
         List<UserVo> userVoList = BeanUtil.copyToList(users, UserVo.class);
@@ -505,7 +506,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //查询数据库获取粉丝数据
         String join = StringUtil.join(fansIds, ',');
         List<User> users = userService.lambdaQuery()
-                .select(User::getId, User::getUsername, User::getAvatar,User::getExp)
+                .select(User::getId, User::getUsername, User::getAvatar, User::getExp)
                 .last("order by field (id , " + join + ")")
                 .list();
 
@@ -520,5 +521,21 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         fansVoScrollResult.setOffset(newOffset);
         fansVoScrollResult.setCursor(maxTime);
         return SaResult.data(fansVoScrollResult);
+    }
+
+    @Override
+    public void removeFollowingAndFansByUserId(Long userId) {
+
+        //数据库删除数据
+        lambdaUpdate().eq(UserFollow::getFollowedUserId, userId)
+                .or()
+                .eq(UserFollow::getUserId, userId)
+                .remove();
+
+        //清除相关缓存
+        String followingKey = USER_FOLLOWING_KEY + userId;
+        String fansKey = USER_FANS_KEY + userId;
+        redisTemplate.delete(List.of(followingKey, fansKey));
+
     }
 }

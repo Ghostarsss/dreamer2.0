@@ -11,4 +11,7 @@ public interface UserFeignClient {
     @GetMapping("/users/{userId}")
     public SaResult queryUserById(@PathVariable String userId);
 
+    @GetMapping("/users/all-admin")
+    public SaResult listAdmin();
+
 }

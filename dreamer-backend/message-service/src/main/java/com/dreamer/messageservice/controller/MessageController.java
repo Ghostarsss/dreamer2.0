@@ -9,10 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +44,16 @@ public class MessageController {
     @GetMapping
     public SaResult listMessage() {
         return messageService.listMessage();
+    }
+
+
+    /**
+     * 管理员给指定用户发送通知
+     * @return
+     */
+    @PostMapping("/admin/notify")
+    public SaResult adminNotifyUser(@RequestBody MessageDto messageDto) {
+        return messageService.adminNotifyUser(messageDto);
     }
 
 }
