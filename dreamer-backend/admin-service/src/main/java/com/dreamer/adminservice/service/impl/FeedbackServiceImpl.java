@@ -3,25 +3,34 @@ package com.dreamer.adminservice.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.adminservice.entity.dto.FeedbackDto;
 import com.dreamer.adminservice.entity.pojo.Feedback;
+import com.dreamer.adminservice.feign.MessageFeignClient;
 import com.dreamer.adminservice.key.RedisKey;
 import com.dreamer.adminservice.mapper.FeedbackMapper;
 import com.dreamer.adminservice.service.IFeedbackService;
 import com.dreamer.common.constant.MessageConstant;
 import com.dreamer.common.constant.RabbitMQConstant;
+import com.dreamer.common.constant.ScrollConstant;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.message.SystemMessage;
 import com.dreamer.common.message.UserMessage;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
+
+import static com.dreamer.adminservice.constant.FeedbackConstant.FEEDBACK_IS_REPLY_STATUS;
+import static com.dreamer.adminservice.constant.FeedbackConstant.FEEDBACK_NOT_REPLY_STATUS;
+import static com.dreamer.adminservice.message.FeedbackMessage.FEEDBACK_REPLY_SUCCESS;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +38,7 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback> i
 
     private final RabbitTemplate rabbitTemplate;
     private final RedissonClient redissonClient;
+    private final MessageFeignClient messageFeignClient;
 
 
     @Override
@@ -74,5 +84,47 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback> i
                 lock.unlock();
             }
         }
+    }
+
+    @Override
+    public SaResult pageFeedback(Integer page) {
+
+        Page<Feedback> feedbackPage = new Page<>(page, ScrollConstant.SCROLL_LIMIT);
+        lambdaQuery().orderByDesc(Feedback::getCreateTime, Feedback::getId)
+                .page(feedbackPage);
+
+        return SaResult.data(feedbackPage);
+    }
+
+    @Override
+    @GlobalTransactional
+    public SaResult replyFeedback(Long feedbackId, String reply) {
+
+        //处理反馈
+        boolean update = lambdaUpdate().eq(Feedback::getId, feedbackId)
+                .eq(Feedback::getStatus, FEEDBACK_NOT_REPLY_STATUS)
+                .set(Feedback::getReply, reply)
+                .set(Feedback::getStatus, FEEDBACK_IS_REPLY_STATUS)
+                .set(Feedback::getUpdateTime,LocalDateTime.now())
+                .update();
+        if (!update) {
+            return SaResult.error(SystemMessage.SYSTEM_ERROR);
+        }
+
+        //远程通知用户反馈已受理
+        Long userId = getById(feedbackId).getUserId();
+        MessageDto messageDto = MessageDto.builder()
+                .sendId(StpUtil.getLoginIdAsLong())
+                .userId(userId)
+                .content("「管理员」" + StpUtil.getSession().getString("username")
+                        + " 受理了您的反馈："
+                        + reply)
+                .build();
+        SaResult saResult = messageFeignClient.replyFeedbackNotify(messageDto);
+        if (saResult.getCode() == 500) {
+            return SaResult.error(SystemMessage.SYSTEM_ERROR);
+        }
+
+        return SaResult.ok(FEEDBACK_REPLY_SUCCESS);
     }
 }

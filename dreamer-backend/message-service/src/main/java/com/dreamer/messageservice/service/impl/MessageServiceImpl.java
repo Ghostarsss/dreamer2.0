@@ -8,6 +8,7 @@ import com.dreamer.common.constant.MessageConstant;
 import com.dreamer.common.entity.dto.FollowingRabbitDto;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.vo.UserVo;
+import com.dreamer.common.message.SystemMessage;
 import com.dreamer.messageservice.entity.pojo.MessageTemplate;
 import com.dreamer.messageservice.entity.pojo.UserMessage;
 import com.dreamer.messageservice.feign.UserFeignClient;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static com.dreamer.common.constant.MessageConstant.ADMIN_NOTIFY_MESSAGE_TYPE;
+import static com.dreamer.common.constant.MessageConstant.*;
 import static com.dreamer.messageservice.message.MessageMessage.NOTIFY_SEND_ERROR;
 import static com.dreamer.messageservice.message.MessageMessage.NOTIFY_SEND_SUCCESS;
 
@@ -267,6 +268,71 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         }
 
         return SaResult.ok(NOTIFY_SEND_SUCCESS);
+    }
+
+    @Override
+    public SaResult addNotice(MessageDto messageDto) {
+
+        MessageTemplate messageTemplate = BeanUtil.copyProperties(messageDto, MessageTemplate.class);
+        messageTemplate.setType(NOTIFY_MESSAGE_TYPE);
+        messageTemplate.setIsBroadcast(IS_BROADCAST_TYPE);
+        messageTemplate.setCreateTime(LocalDateTime.now());
+
+        boolean save = save(messageTemplate);
+        if (!save) {
+            log.error("管理员发布公告失败：{}", messageTemplate);
+            return SaResult.error(SystemMessage.SYSTEM_ERROR);
+        }
+
+        return SaResult.ok();
+    }
+
+    @Override
+    public SaResult listNotice() {
+
+        List<MessageTemplate> messageTemplates = lambdaQuery().eq(MessageTemplate::getIsBroadcast, IS_BROADCAST_TYPE)
+                .orderByDesc(MessageTemplate::getCreateTime, MessageTemplate::getId)
+                .list();
+
+        return SaResult.data(messageTemplates);
+    }
+
+    @Override
+    public SaResult removeNotice(Long noticeId) {
+
+        boolean remove = removeById(noticeId);
+        if (!remove) {
+            return SaResult.error();
+        }
+
+        return SaResult.ok();
+    }
+
+    @Override
+    public SaResult replyFeedbackNotify(MessageDto messageDto) {
+
+        LocalDateTime now = LocalDateTime.now();
+        MessageTemplate messageTemplate = BeanUtil.copyProperties(messageDto, MessageTemplate.class);
+        messageTemplate.setCreateTime(now);
+        messageTemplate.setType(FEEDBACK_MESSAGE_TYPE);
+
+        boolean save = save(messageTemplate);
+        if (!save) {
+            return SaResult.error();
+        }
+
+        UserMessage userMessage = new UserMessage();
+        userMessage.setCreateTime(now);
+        userMessage.setMessageId(messageTemplate.getId());
+        userMessage.setUserId(messageDto.getUserId());
+
+        int saveUserMessage = userMessageMapper.insert(userMessage);
+        if (saveUserMessage == 0) {
+            log.error("管理员通知保存失败 ：{}", messageDto);
+            return SaResult.error();
+        }
+
+        return SaResult.ok();
     }
 
 

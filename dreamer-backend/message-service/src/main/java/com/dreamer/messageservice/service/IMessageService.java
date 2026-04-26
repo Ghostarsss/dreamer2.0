@@ -21,4 +21,12 @@ public interface IMessageService extends IService<MessageTemplate> {
     void commentedMessage(MessageDto messageDto);
 
     SaResult adminNotifyUser(MessageDto messageDto);
+
+    SaResult addNotice(MessageDto messageDto);
+
+    SaResult listNotice();
+
+    SaResult removeNotice(Long noticeId);
+
+    SaResult replyFeedbackNotify(MessageDto messageDto);
 }

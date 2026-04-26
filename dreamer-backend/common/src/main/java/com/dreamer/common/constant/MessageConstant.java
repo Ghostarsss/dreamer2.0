@@ -16,5 +16,6 @@ public class MessageConstant {
     public static final Integer NOT_READ_STATUS = 0;
     public static final Integer IS_READ_STATUS = 1;
 
-    public static final Object IS_BROADCAST_TYPE = 1;
+    public static final Integer IS_BROADCAST_TYPE = 1;
+    public static final Integer NOT_BROADCAST_TYPE = 0;
 }

@@ -56,4 +56,41 @@ public class MessageController {
         return messageService.adminNotifyUser(messageDto);
     }
 
+    /**
+     * 管理员添加公告
+     * @return
+     */
+    @PostMapping("/admin/notices")
+    public SaResult addNotice(@RequestBody MessageDto messageDto) {
+        return messageService.addNotice(messageDto);
+    }
+
+    /**
+     * 查看历史公告
+     * @return
+     */
+    @GetMapping("/admin/notices")
+     public SaResult listNotice() {
+        return messageService.listNotice();
+    }
+
+    /**
+     * 管理员删除公告
+     * @param noticeId
+     * @return
+     */
+    @DeleteMapping("/admin/{noticeId}")
+    public SaResult removeNotice(@PathVariable Long noticeId) {
+        return messageService.removeNotice(noticeId);
+    }
+
+    /**
+     * 管理员受理反馈的消息通知
+     * @param messageDto
+     * @return
+     */
+    @PostMapping("/admin/reply-feedback")
+    SaResult replyFeedbackNotify(@RequestBody MessageDto messageDto) {
+        return messageService.replyFeedbackNotify(messageDto);
+    }
 }
