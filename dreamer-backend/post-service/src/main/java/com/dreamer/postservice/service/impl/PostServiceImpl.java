@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.MessageConstant;
 import com.dreamer.common.constant.RabbitMQConstant;
@@ -14,7 +15,7 @@ import com.dreamer.common.entity.result.ScrollResult;
 import com.dreamer.common.message.SystemMessage;
 import com.dreamer.common.message.UserMessage;
 import com.dreamer.postservice.constant.LikesConstant;
-import com.dreamer.postservice.constant.PostConstant;
+import com.dreamer.common.constant.PostConstant;
 import com.dreamer.postservice.entity.pojo.Post;
 import com.dreamer.common.entity.vo.PostVo;
 import com.dreamer.postservice.feign.UserFeignClient;
@@ -46,7 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.dreamer.common.constant.RabbitMQConstant.POST_DELETE_COMMENT_LIKE_QUEUE;
-import static com.dreamer.postservice.constant.PostConstant.POST_STATUS_PASS_REVIEW;
+import static com.dreamer.common.constant.PostConstant.POST_STATUS_PASS_REVIEW;
+import static com.dreamer.common.constant.PostConstant.POST_STATUS_PENDING_REVIEW;
 import static com.dreamer.postservice.message.PostMessage.POST_UPDATE_SUCCESS_MESSAGE;
 
 @Service
@@ -528,5 +530,72 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
             likesService.delLikesByPostId(postId);
         }
 
+    }
+
+    @Override
+    public Page<PostVo> pagePendingPosts(Integer page) {
+
+        Page<Post> postPage = new Page<>(page, ScrollConstant.SCROLL_LIMIT);
+        lambdaQuery().eq(Post::getStatus, PostConstant.POST_STATUS_PENDING_REVIEW)
+                .orderByDesc(Post::getId)
+                .page(postPage);
+
+        List<Post> posts = postPage.getRecords();
+        List<Long> postUserIds = posts.stream()
+                .map(Post::getUserId).toList();
+
+        //远程批量查询文章对应用户，用于 vo 拼接
+        SaResult saResult = userFeignClient.batchQueryUserByUserId(postUserIds);
+        if (saResult.getCode() == 500) {
+            throw new RuntimeException(saResult.getMsg());
+        }
+
+        List<UserVo> userVos = BeanUtil.copyToList((List<?>) saResult.getData(), UserVo.class);
+        Map<Long, UserVo> userVoMap = userVos.stream()
+                .collect(Collectors.toMap(UserVo::getId, u -> u));
+
+        List<PostVo> postVos = BeanUtil.copyToList(posts, PostVo.class);
+        for (PostVo postVo : postVos) {
+
+            UserVo userVo = userVoMap.get(postVo.getUserId());
+            if (userVo == null) {
+                continue;
+            }
+            postVo.setAvatar(userVo.getAvatar());
+            postVo.setUsername(userVo.getUsername());
+            postVo.setLevel(userVo.getLevel());
+
+        }
+
+        //封装 page
+        Page<PostVo> postVoPage = new Page<>();
+        postVoPage.setPages(postPage.getPages());
+        postVoPage.setCurrent(postPage.getCurrent());
+        postVoPage.setRecords(postVos);
+        postVoPage.setTotal(postPage.getTotal());
+        postVoPage.setSize(postPage.getSize());
+
+        return postVoPage;
+    }
+
+    @Override
+    public SaResult checkPost(Long postId, Integer status) {
+
+        boolean update = lambdaUpdate().eq(Post::getId, postId)
+                .eq(Post::getStatus, POST_STATUS_PENDING_REVIEW)
+                .set(Post::getStatus, status)
+                .update();
+
+        if (!update) {
+            return SaResult.error();
+        }
+
+        return SaResult.ok();
+    }
+
+    @Override
+    public Long countPosts() {
+
+        return count();
     }
 }

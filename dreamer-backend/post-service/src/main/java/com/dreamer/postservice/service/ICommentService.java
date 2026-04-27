@@ -16,4 +16,6 @@ public interface ICommentService extends IService<Comment> {
     SaResult listCommentsByPostId(Long postId, Long cursor);
 
     SaResult listCommentsByCommentId(Long commentId, Long cursor);
+
+    Long countComments();
 }

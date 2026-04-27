@@ -18,7 +18,9 @@ public interface IVPService extends IService<User> {
 
     void followingEXP(EXPRabbitDto expRabbitDto);
 
-    void PostLikedEXP(MessageDto messageDto);
+    void postLikedEXP(MessageDto messageDto);
 
     SaResult deductProton(Long userId, Integer protons);
+
+    void postPassEXP(MessageDto messageDto);
 }

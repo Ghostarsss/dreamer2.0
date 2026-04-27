@@ -82,4 +82,13 @@ public class LetterController {
     public SaResult listOpenedLetters(Integer page,Integer size) {
         return letterService.listOpenedLetters(page,size);
     }
+
+    /**
+     * 管理员统计信件数
+     * @return
+     */
+    @GetMapping("/admin/count")
+    public Long countLetters() {
+        return letterService.countLetters();
+    }
 }

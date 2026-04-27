@@ -7,7 +7,7 @@ import com.dreamer.common.constant.RabbitMQConstant;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.message.SystemMessage;
 import com.dreamer.postservice.constant.LikesConstant;
-import com.dreamer.postservice.constant.PostConstant;
+import com.dreamer.common.constant.PostConstant;
 import com.dreamer.postservice.entity.pojo.Comment;
 import com.dreamer.postservice.entity.pojo.Likes;
 import com.dreamer.postservice.entity.pojo.Post;

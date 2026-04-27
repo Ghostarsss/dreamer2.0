@@ -1,7 +1,9 @@
 package com.dreamer.postservice.service;
 
 import cn.dev33.satoken.util.SaResult;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.dreamer.common.entity.vo.PostVo;
 import com.dreamer.postservice.entity.pojo.Post;
 
 public interface IPostService extends IService<Post> {
@@ -24,4 +26,10 @@ public interface IPostService extends IService<Post> {
     SaResult protonPost(Long postId, Integer protons);
 
     void delPostByUserId(Long userId);
+
+    Page<PostVo> pagePendingPosts(Integer page);
+
+    SaResult checkPost(Long postId, Integer status);
+
+    Long countPosts();
 }

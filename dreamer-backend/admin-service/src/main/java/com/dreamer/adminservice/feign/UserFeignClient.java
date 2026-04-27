@@ -23,4 +23,7 @@ public interface UserFeignClient {
 
     @DeleteMapping("/users/admin/delete")
     SaResult delUser(@RequestParam("userId") Long userId);
+
+    @GetMapping("/users/admin/count")
+    Long countUsers();
 }

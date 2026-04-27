@@ -43,4 +43,6 @@ public interface IUserService extends IService<User> {
     SaResult banUser(Long userId);
 
     SaResult delUser(Long userId);
+
+    Long countUsers();
 }

@@ -4,9 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.RabbitMQConstant;
@@ -147,6 +145,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         int level = LevelUtil.calculateLevel(exp);
         userVo.setLevel(level);
 
+        //添加网站总浏览量
+        redisTemplate.opsForValue().increment("statistics:view",1);
         return SaResult.data(userVo);
     }
 
@@ -435,5 +435,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         rabbitTemplate.convertAndSend(RabbitMQConstant.ADMIN_DELETE_USER_EXCHANGE, "", userId);
 
         return SaResult.ok("用户删除成功");
+    }
+
+    @Override
+    public Long countUsers() {
+
+        return count();
     }
 }

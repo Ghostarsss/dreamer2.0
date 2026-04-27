@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import static com.dreamer.common.constant.EXPConstant.BIG_EXP;
 import static com.dreamer.common.constant.EXPConstant.TINY_EXP;
 import static com.dreamer.userservice.key.LockKey.SIGN_KEY;
 import static com.dreamer.userservice.message.VPMessage.USER_SIGN_AGAIN_MESSAGE;
@@ -164,7 +165,7 @@ public class VPServiceImpl extends ServiceImpl<VPMapper, User> implements IVPSer
     }
 
     @Override
-    public void PostLikedEXP(MessageDto messageDto) {
+    public void postLikedEXP(MessageDto messageDto) {
         //feign 查询文章作者 id
         SaResult saResult = postFeignClient.queryPostByPostId(messageDto.getPostId());
         Long userId = BeanUtil.copyProperties(saResult.getData(), PostVo.class).getUserId();
@@ -190,5 +191,20 @@ public class VPServiceImpl extends ServiceImpl<VPMapper, User> implements IVPSer
         }
 
         return SaResult.ok(VPMessage.POST_TIP_PROTON_SUCCESS);
+    }
+
+    @Override
+    public void postPassEXP(MessageDto messageDto) {
+
+        //feign 查询文章作者 id
+        SaResult saResult = postFeignClient.queryPostByPostId(messageDto.getPostId());
+        Long userId = BeanUtil.copyProperties(saResult.getData(), PostVo.class).getUserId();
+
+
+        lambdaUpdate()
+                .setSql("exp = exp + " + BIG_EXP)
+                .eq(User::getId, userId)
+                .update();
+
     }
 }

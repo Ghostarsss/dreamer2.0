@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.dreamer.common.constant.RabbitMQConstant.POST_LIKE_INCREMENT_EXP_QUEUE;
-import static com.dreamer.common.constant.RabbitMQConstant.USER_FOLLOWING_EXP_QUEUE;
+import static com.dreamer.common.constant.RabbitMQConstant.*;
 import static com.dreamer.userservice.key.LockKey.FOLLOWING_USER_MQ_KEY;
 import static com.dreamer.userservice.key.LockKey.LIKE_INCREMENT_EXP_KEY;
 
@@ -40,13 +39,22 @@ public class VPConsumer {
      * 文章被点赞后获得经验
      */
     @RabbitListener(queues = POST_LIKE_INCREMENT_EXP_QUEUE)
-    public void PostLikedEXP(MessageDto messageDto) {
+    public void postLikedEXP(MessageDto messageDto) {
 
         //redis 防止重复关注刷经验
         String lockKey = LIKE_INCREMENT_EXP_KEY + messageDto.getSendId() + "_" + messageDto.getPostId();
         Boolean isIncrementEXP = redisTemplate.opsForValue().setIfAbsent(lockKey, "", 7, TimeUnit.DAYS);
         if (Boolean.TRUE.equals(isIncrementEXP)) {
-            vpService.PostLikedEXP(messageDto);
+            vpService.postLikedEXP(messageDto);
         }
+    }
+
+    /**
+     * 文章审核通过获取经验
+     * @param messageDto
+     */
+    @RabbitListener(queues = POST_PASS_EXP_INCREMENT_QUEUE)
+    public void postPassEXP(MessageDto messageDto) {
+        vpService.postPassEXP(messageDto);
     }
 }

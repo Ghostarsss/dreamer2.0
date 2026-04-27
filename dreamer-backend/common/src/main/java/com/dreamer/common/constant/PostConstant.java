@@ -1,4 +1,4 @@
-package com.dreamer.postservice.constant;
+package com.dreamer.common.constant;
 
 public class PostConstant {
 

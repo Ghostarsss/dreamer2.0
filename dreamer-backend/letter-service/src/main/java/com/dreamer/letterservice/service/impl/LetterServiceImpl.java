@@ -225,7 +225,7 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
         //mybatisplus 实现分页查询业务
         LambdaQueryWrapper<FutureLetter> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FutureLetter::getIsOpen, LETTER_IS_OPENED)
-                .eq(FutureLetter::getUserId,userId)
+                .eq(FutureLetter::getUserId, userId)
                 .orderByDesc(FutureLetter::getOpenTime);
 
         Page<FutureLetter> futureLetterPage = new Page<>(page, size);
@@ -241,6 +241,12 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
         lambdaUpdate().eq(FutureLetter::getUserId, userId)
                 .remove();
 
+    }
+
+    @Override
+    public Long countLetters() {
+
+        return count();
     }
 
 }

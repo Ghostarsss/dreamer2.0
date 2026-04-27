@@ -5,6 +5,7 @@ import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.MessageConstant;
+import com.dreamer.common.constant.PostConstant;
 import com.dreamer.common.entity.dto.FollowingRabbitDto;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.vo.UserVo;
@@ -82,10 +83,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
             userMessageService.saveBatch(userMessages);
 
 
-        } else {
-            userMessage.setUserId(messageDto.getUserId());
-            userMessageService.save(userMessage);
         }
+
+        userMessage.setUserId(messageDto.getUserId());
+        userMessageService.save(userMessage);
 
     }
 

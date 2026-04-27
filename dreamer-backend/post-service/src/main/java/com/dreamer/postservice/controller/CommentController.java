@@ -57,4 +57,12 @@ public class CommentController {
         return commentService.listCommentsByCommentId(commentId, cursor);
     }
 
+    /**
+     * 管理员统计总文章数
+     * @return
+     */
+    @GetMapping("/admin/count")
+    Long countComments() {
+        return commentService.countComments();
+    }
 }

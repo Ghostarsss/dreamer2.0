@@ -260,6 +260,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         return SaResult.data(commentVoScrollResult);
     }
 
+    @Override
+    public Long countComments() {
+
+        return count();
+    }
+
     /**
      * 封装评论
      * @param comments

@@ -1,6 +1,8 @@
 package com.dreamer.postservice.controller;
 
 import cn.dev33.satoken.util.SaResult;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.dreamer.common.entity.vo.PostVo;
 import com.dreamer.postservice.service.IPostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -114,5 +116,35 @@ public class PostController {
     @PostMapping("/{postId}/protons")
     public SaResult protonPost(@PathVariable Long postId,Integer protons) {
         return postService.protonPost(postId, protons);
+    }
+
+    /**
+     * 管理员查询待审核文件
+     * @param page
+     * @return
+     */
+    @GetMapping("/admin/pending")
+    Page<PostVo> pagePendingPosts(@RequestParam("page") Integer page) {
+        return postService.pagePendingPosts(page);
+    }
+
+    /**
+     * 管理员审核文章
+     * @param postId
+     * @param status
+     * @return
+     */
+    @PutMapping("/admin/check/{postId}")
+    SaResult checkPost(@PathVariable Long postId, @RequestParam("status") Integer status) {
+        return postService.checkPost(postId, status);
+    }
+
+    /**
+     * 管理员统计总文章数
+     * @return
+     */
+    @GetMapping("/admin/count")
+    public Long countPosts() {
+        return postService.countPosts();
     }
 }

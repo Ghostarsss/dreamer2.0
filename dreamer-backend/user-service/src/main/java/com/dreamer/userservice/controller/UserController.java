@@ -191,4 +191,13 @@ public class UserController {
     SaResult delUser(@RequestParam("userId") Long userId) {
         return userService.delUser(userId);
     }
+
+    /**
+     * 管理员查询所有用户数
+     * @return
+     */
+    @GetMapping("/admin/count")
+    public Long countUsers() {
+        return userService.countUsers();
+    }
 }

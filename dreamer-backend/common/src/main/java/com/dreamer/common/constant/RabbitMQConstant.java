@@ -35,4 +35,8 @@ public class RabbitMQConstant {
     public static final String ADMIN_DELETE_USER_FOLLOWING_QUEUE = "admin.delete.user.following.queue";
 
     public static final String ADMIN_DELETE_USER_EXCHANGE = "admin.delete.user.exchange";
+
+    public static final String ADMIN_POST_CHECK_MESSAGE_QUEUE = "admin.post.check.message.queue";
+
+    public static final String POST_PASS_EXP_INCREMENT_QUEUE = "post.pass.exp.increment.queue";
 }
