@@ -161,8 +161,7 @@ public class RegisterServiceImpl extends ServiceImpl<RegisterMapper, User> imple
 
             //判断用户信息格式是否正确
             if (userDto.getAvatar().isBlank()) {
-                //TODO 设置头像默认值
-                userDto.setAvatar("");
+                userDto.setAvatar("https://dreamer-plus.oss-cn-qingdao.aliyuncs.com/2026/04/27/1d721b0f813a4d649936c641664d933a.png");
             }
             if (userDto.getUsername().isEmpty() || !PasswordUtil.isValidPassword(userDto.getPassword())) {
                 return SaResult.error(USER_FORMAT_ERROR);

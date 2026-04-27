@@ -19,11 +19,10 @@
         <module>gateway</module>
         <module>auth-service</module>
         <module>user-service</module>
-<!--        <module>post-service</module>-->
+        <module>post-service</module>
         <module>letter-service</module>
         <module>message-service</module>
-<!--        <module>feedback-service</module>-->
-<!--        <module>admin-service</module>-->
+        <module>admin-service</module>
     </modules>
 
     <!-- 统一版本管理 -->
