@@ -87,7 +87,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //缓存 user 对象信息
         StpUtil.getSession().set("userId", userId);
         StpUtil.getSession().set("role", REGULAR_USER_ROLE_INTEGER);
-        return SaResult.ok();
+        return SaResult.ok(StpUtil.getTokenValue());
     }
 
     @Override
@@ -125,14 +125,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         StpUtil.getSession().set("userId", userId);
         StpUtil.getSession().set("username", user.getUsername());
         StpUtil.getSession().set("role", user.getRole());
-        //添加角色权限
-        return SaResult.ok(LOGIN_SUCCESS);
+        return SaResult.ok(StpUtil.getTokenValue());
     }
 
     @Override
     public SaResult getMe() {
 
-        User user = getById(StpUtil.getSession().getInt("userId"));
+        User user = getById(StpUtil.getSession().getString("userId"));
 
         if (user == null) {
             return SaResult.error(USER_NOT_EXISTS);
