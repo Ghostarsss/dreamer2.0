@@ -60,7 +60,14 @@ public class MessageConsumer {
     public void postOrCommentLikedMessage(MessageDto messageDto) {
 
         //使用 redis 防止重复点赞推送信息
-        String lock = POST_COMMENT_LIKED_MESSAGE_KEY + messageDto.getSendId() + "_" + messageDto.getPostId();
+        long lockKey = messageDto.getCommentId();
+        if (messageDto.getPostId() != null) {
+            //如果是对文章的评论，则加文章的 lock
+            lockKey = messageDto.getPostId();
+        }
+
+        String lock = POST_COMMENT_LIKED_MESSAGE_KEY + messageDto.getSendId() + "_" + lockKey;
+
         Boolean isSendLikedMessage = redisTemplate.opsForValue().setIfAbsent(lock, "", 7, TimeUnit.DAYS);
 
         if (Boolean.TRUE.equals(isSendLikedMessage)) {
@@ -75,11 +82,11 @@ public class MessageConsumer {
     public void commentedMessage(MessageDto messageDto) {
 
         //使用 redis 防止重复评论推送信息
-        String lock = POST_COMMENT_MESSAGE_KEY + messageDto.getSendId() + "_" + messageDto.getPostId();
-        Boolean isSendCommentedMessage = redisTemplate.opsForValue().setIfAbsent(lock, "", 1, TimeUnit.MINUTES);
+//        String lock = POST_COMMENT_MESSAGE_KEY + messageDto.getSendId() + "_" + messageDto.getPostId();
+//        Boolean isSendCommentedMessage = redisTemplate.opsForValue().setIfAbsent(lock, "", 1, TimeUnit.MINUTES);
 
-        if (Boolean.TRUE.equals(isSendCommentedMessage)) {
+//        if (Boolean.TRUE.equals(isSendCommentedMessage)) {
             messageService.commentedMessage(messageDto);
-        }
+//        }
     }
 }

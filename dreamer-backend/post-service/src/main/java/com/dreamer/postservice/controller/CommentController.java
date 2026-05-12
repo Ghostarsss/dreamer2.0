@@ -58,6 +58,16 @@ public class CommentController {
     }
 
     /**
+     * 查询所有评论
+     * @param postId
+     * @return
+     */
+    @GetMapping("/{postId}")
+    public SaResult listAllCommentsByPostId(@PathVariable Long postId) {
+        return commentService.listAllCommentsByPostId(postId);
+    }
+
+    /**
      * 管理员统计总文章数
      * @return
      */

@@ -10,7 +10,7 @@ public interface IMessageService extends IService<MessageTemplate> {
 
     void addMessage(MessageDto messageDto);
 
-    SaResult messageCount(String isRead);
+    SaResult messageCount();
 
     SaResult listMessage();
 
@@ -29,4 +29,6 @@ public interface IMessageService extends IService<MessageTemplate> {
     SaResult removeNotice(Long noticeId);
 
     SaResult replyFeedbackNotify(MessageDto messageDto);
+
+    SaResult clearMessage();
 }

@@ -3,15 +3,16 @@ package com.dreamer.messageservice.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.MessageConstant;
-import com.dreamer.common.constant.PostConstant;
 import com.dreamer.common.entity.dto.FollowingRabbitDto;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.vo.UserVo;
 import com.dreamer.common.message.SystemMessage;
 import com.dreamer.messageservice.entity.pojo.MessageTemplate;
 import com.dreamer.messageservice.entity.pojo.UserMessage;
+import com.dreamer.messageservice.entity.vo.MessageVo;
 import com.dreamer.messageservice.feign.UserFeignClient;
 import com.dreamer.messageservice.mapper.MessageTemplateMapper;
 import com.dreamer.messageservice.mapper.UserMessageMapper;
@@ -23,10 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.dreamer.common.constant.MessageConstant.*;
@@ -91,9 +90,9 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
     }
 
     @Override
-    public SaResult messageCount(String isRead) {
+    public SaResult messageCount() {
 
-        int userId = StpUtil.getSession().getInt("userId");
+        long userId = StpUtil.getLoginIdAsLong();
         int notReadCount = userMessageMapper.messageNotReadCount(userId);
         return SaResult.ok(String.valueOf(notReadCount));
     }
@@ -101,22 +100,43 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
     @Override
     public SaResult listMessage() {
 
-        int userId = StpUtil.getSession().getInt("userId");
+        long userId = StpUtil.getLoginIdAsLong();
         //查询消息
-        List<MessageDto> userMessageDtoList = userMessageMapper.listMessage(userId);
+        List<MessageVo> userMessageDtoList = userMessageMapper.listMessage(userId);
         List<MessageTemplate> list = lambdaQuery()
                 .eq(MessageTemplate::getIsBroadcast, MessageConstant.IS_BROADCAST_TYPE)
                 .list();
-        List<MessageDto> broadcastMessageDtoList = BeanUtil.copyToList(list, MessageDto.class);
+        List<MessageVo> broadcastMessageDtoList = BeanUtil.copyToList(list, MessageVo.class);
 
         //用户消息和广播消息排序
-        List<MessageDto> messageDtoList = Stream.concat(userMessageDtoList.stream(), broadcastMessageDtoList.stream())
-                .sorted(Comparator.comparing(MessageDto::getCreateTime).reversed())
+        List<MessageVo> messageVoList = Stream.concat(userMessageDtoList.stream(), broadcastMessageDtoList.stream())
+                .sorted(Comparator.comparing(MessageVo::getCreateTime).reversed())
                 .toList();
+
+        //远程批量查询消息用户
+        List<String> userIds = messageVoList.stream().map(MessageVo::getSendId).filter(Objects::nonNull).distinct().toList();
+        SaResult saResult = userFeignClient.batchQueryUserByUserId(userIds);
+        List<UserVo> userVos = BeanUtil.copyToList((List<?>) saResult.getData(), UserVo.class);
+        Map<String, UserVo> collect = userVos.stream().collect(Collectors.toMap(UserVo::getId, u -> u));
+
+        //封装 message 返回前端
+        for (MessageVo messageVo : messageVoList) {
+            String sendId = messageVo.getSendId();
+            if (sendId != null) {
+                UserVo userVo = collect.get(sendId);
+                if (userVo != null) {
+                    messageVo.setAvatar(userVo.getAvatar());
+                    messageVo.setUsername(userVo.getUsername());
+                    messageVo.setLevel(userVo.getLevel());
+                } else {
+                    messageVo.setUsername("该用户被封禁");
+                }
+            }
+        }
 
         //消息改为已读
         userMessageMapper.isRead(userId);
-        return SaResult.data(messageDtoList);
+        return SaResult.data(messageVoList);
     }
 
     @Override
@@ -126,7 +146,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         LocalDateTime now = LocalDateTime.now();
         //插入消息模板
         MessageTemplate messageTemplate = new MessageTemplate();
-        messageTemplate.setContent(followingRabbitDto.getFansUsername() + " 关注了你");
+        messageTemplate.setContent("「" + followingRabbitDto.getFansUsername() + "」关注了你");
         messageTemplate.setType(MessageConstant.FOLLOW_MESSAGE_TYPE);
         messageTemplate.setCreateTime(now);
         save(messageTemplate);
@@ -159,7 +179,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         Long postId = messageDto.getPostId();
         if (postId != null) {
             //文章点赞
-            messageTemplate.setContent(userVo.getUsername() + " 点赞了您的文章");
+            messageTemplate.setContent("「" + userVo.getUsername() + "」点赞了您的文章");
 
             //保存
             save(messageTemplate);
@@ -170,7 +190,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
             userMessageMapper.insert(userMessage);
         } else {
             //评论点赞
-            messageTemplate.setContent(userVo.getUsername() + "点赞了您的评论");
+            messageTemplate.setContent("「" + userVo.getUsername() + "」点赞了您的评论");
 
             //保存
             save(messageTemplate);
@@ -210,7 +230,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         if (postUserId == null) {
 
             //一级评论,只用给文章作者发送通知
-            messageTemplate.setContent("「梦想家」 " + userVo.getUsername() + " 评论了您的文章");
+            messageTemplate.setContent("「" + userVo.getUsername() + "」评论了您的文章:「" + messageDto.getContent() + "」");
             save(messageTemplate);
             userMessage.setMessageId(messageTemplate.getId());
             userMessageMapper.insert(userMessage);
@@ -219,27 +239,29 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
             //二级评论，发送 文章作者 和 父评论作者
 
-            messageTemplate.setContent("「梦想家」 " + userVo.getUsername() + " 评论了您");
+            messageTemplate.setContent("「" + userVo.getUsername() + "」评论了您:「" + messageDto.getContent() + "」");
             save(messageTemplate);
             userMessage.setMessageId(messageTemplate.getId());
             userMessageMapper.insert(userMessage);
 
 
             //封装对父评论用户的消息表
-            MessageTemplate parentMessageTemplate = new MessageTemplate();
-            parentMessageTemplate.setSendId(sendId);
-            parentMessageTemplate.setType(MessageConstant.COMMENT_MESSAGE_TYPE);
-            parentMessageTemplate.setCreateTime(now);
+            //如果是自己的文章下就不发
+            if (messageDto.getPostUserId() == messageDto.getUserId()) {
+                MessageTemplate parentMessageTemplate = new MessageTemplate();
+                parentMessageTemplate.setSendId(sendId);
+                parentMessageTemplate.setType(MessageConstant.COMMENT_MESSAGE_TYPE);
+                parentMessageTemplate.setCreateTime(now);
 
-            UserMessage parentUserMessage = new UserMessage();
-            parentUserMessage.setCreateTime(now);
-            parentUserMessage.setUserId(postUserId);
+                UserMessage parentUserMessage = new UserMessage();
+                parentUserMessage.setCreateTime(now);
+                parentUserMessage.setUserId(postUserId);
 
-            parentMessageTemplate.setContent("「梦想家」 " + userVo.getUsername() + " 在您的文章下评论了他人");
-            save(parentMessageTemplate);
-            parentUserMessage.setMessageId(parentMessageTemplate.getId());
-            userMessageMapper.insert(parentUserMessage);
-
+                parentMessageTemplate.setContent("「" + userVo.getUsername() + "」在您的文章下评论了他人" + messageDto.getContent());
+                save(parentMessageTemplate);
+                parentUserMessage.setMessageId(parentMessageTemplate.getId());
+                userMessageMapper.insert(parentUserMessage);
+            }
         }
 
     }
@@ -334,6 +356,15 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         }
 
         return SaResult.ok();
+    }
+
+    @Override
+    public SaResult clearMessage() {
+
+        long userId = StpUtil.getLoginIdAsLong();
+        userMessageMapper.delete(new LambdaUpdateWrapper<UserMessage>().eq(UserMessage::getUserId, userId));
+
+        return SaResult.ok("消息已清空");
     }
 
 

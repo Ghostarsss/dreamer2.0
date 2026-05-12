@@ -24,13 +24,13 @@ public interface IUserService extends IService<User> {
 
     SaResult updateMe(UserDto userDto);
 
-    SaResult queryUserById(Integer userId);
+    SaResult queryUserById(Long userId);
 
     SaResult queryOpenLettersByUserId(String userId);
 
     SaResult isBaned(long userId);
 
-    SaResult batchQueryUserByUserId(List<Long> userIds);
+    SaResult batchQueryUserByUserId(List<String> userIds);
 
     SaResult listAdmin();
 

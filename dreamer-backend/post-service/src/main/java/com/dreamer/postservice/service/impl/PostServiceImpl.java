@@ -3,6 +3,7 @@ package com.dreamer.postservice.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -93,7 +94,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
             //文章进入审核
             LocalDateTime now = LocalDateTime.now();
             Post post = new Post();
-            post.setContent(content);
+            post.setContent(StrUtil.trim(content));
             post.setUserId(userId);
             post.setCreateTime(now);
             post.setUpdateTime(now);
@@ -116,18 +117,17 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     @Override
     public SaResult delPost(long postId) {
 
-        //判断文章是否属于该用户
+        //判断文章是否属于该用户(是否是管理员)
         long userId = StpUtil.getLoginIdAsLong();
         boolean exists = lambdaQuery().eq(Post::getId, postId)
                 .eq(Post::getUserId, userId)
                 .exists();
-        if (!exists) {
+        if (!exists && StpUtil.getSession().getInt("role") == 1) {
             return SaResult.error(PostMessage.POST_NOT_EXIST);
         }
 
         //逻辑删除文章
         boolean remove = lambdaUpdate().eq(Post::getId, postId)
-                .eq(Post::getUserId, userId)
                 .remove();
         if (!remove) {
             log.error("文章删除失败，用户id：{}，文章 id：{}", userId, postId);
@@ -167,6 +167,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
             } else {
                 postVo.setIsLike(LikesConstant.NOT_LIKED);
             }
+            postVo.setCommentCount(String.valueOf(commentService.countCommentsByPostId(Long.valueOf(postVo.getId()))));
         }
 
         return SaResult.data(postVos);
@@ -177,6 +178,18 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
 
         //判断当前用户是否是文章作者
         long userId = StpUtil.getLoginIdAsLong();
+
+        //如果质子数大于 20则无法更新文章
+        Post post = lambdaQuery().eq(Post::getUserId, userId)
+                .eq(Post::getId, postId)
+                .select(Post::getProtonCount)
+                .one();
+        if (post == null) {
+            return SaResult.error(PostMessage.POST_NOT_EXIST);
+        }
+        if (post.getProtonCount() >= 20) {
+            return SaResult.error(PostMessage.POST_PROTON_EXCEED_UPDATE);
+        }
 
         //更新文章（更新后需审核）
         boolean update = lambdaUpdate().eq(Post::getUserId, userId)
@@ -230,10 +243,14 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                 .eq(Post::getStatus, POST_STATUS_PASS_REVIEW)
                 .last("limit " + ScrollConstant.SCROLL_LIMIT)
                 .orderByDesc(Post::getId).list();
+        if (posts.isEmpty()) {
+            return SaResult.data(Collections.emptyList());
+        }
         List<PostVo> postVos = BeanUtil.copyToList(posts, PostVo.class);
 
         //查询文章用户信息
-        List<Long> userIds = posts.stream().map(Post::getUserId).distinct().toList();
+        List<String> userIds = posts.stream().map(post -> post.getUserId().toString()).distinct().toList();
+
         //feign 批量查询用户信息
         SaResult usersResult = userFeignClient.batchQueryUserByUserId(userIds);
         if (usersResult.getCode() == 500) {
@@ -241,22 +258,29 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         }
 
         List<UserVo> userVos = BeanUtil.copyToList((List<?>) usersResult.getData(), UserVo.class);
-        Map<Long, UserVo> collect = userVos.stream().collect(Collectors.toMap(UserVo::getId, userVo -> userVo));
+        Map<String, UserVo> collect = userVos.stream().collect(Collectors.toMap(UserVo::getId, userVo -> userVo));
         //postVo 拼接用户信息
         for (PostVo postVo : postVos) {
 
             UserVo userVo = collect.get(postVo.getUserId());
             if (userVo != null) {
-                //判断当前用户是否点赞
-                String likeRedisKey = RedisKey.POST_LIKES_REDIS_KEY + postVo.getId();
-                Boolean member = redisTemplate.opsForSet().isMember(likeRedisKey, userVo.getId().toString());
-                if (Boolean.TRUE.equals(member)) {
-                    postVo.setIsLike(PostConstant.POST_IS_LIKED);
+                //如果登录了 判断当前用户是否点赞
+                if (StpUtil.isLogin()) {
+                    String likeRedisKey = RedisKey.POST_LIKES_REDIS_KEY + postVo.getId();
+                    Boolean member = redisTemplate.opsForSet().isMember(likeRedisKey, StpUtil.getLoginIdAsString());
+                    if (Boolean.TRUE.equals(member)) {
+                        postVo.setIsLike(PostConstant.POST_IS_LIKED);
+                    } else {
+                        postVo.setIsLike(PostConstant.POST_IS_UNLIKED);
+                    }
+                } else {
+                    postVo.setIsLike(PostConstant.POST_IS_UNLIKED);
                 }
 
                 postVo.setAvatar(userVo.getAvatar());
                 postVo.setUsername(userVo.getUsername());
                 postVo.setLevel(userVo.getLevel());
+                postVo.setCommentCount(String.valueOf(commentService.countCommentsByPostId(Long.valueOf(postVo.getId()))));
             }
         }
 
@@ -276,64 +300,82 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         //缓存查询 hot 文章信息
         String postHotIdKey = RedisKey.POST_HOT_ID_KEY;
 
-        if (!redisTemplate.hasKey(postHotIdKey)) {
-            //如果缓存过期，更新缓存
+        //加锁，防止高并发缓存多次
+        String lockKey = LockKey.POST_HOT_LOCK + StpUtil.getLoginIdAsString();
+        RLock lock = redissonClient.getLock(lockKey);
 
-            List<Post> posts = lambdaQuery().lt(Post::getId, cursor)
-                    .ge(Post::getProtonCount, PostConstant.POST_HOT_MIN_PROTON_COUNT)
-                    .eq(Post::getStatus, POST_STATUS_PASS_REVIEW)
-                    .orderByDesc(Post::getProtonCount, Post::getId).list();
-            if (posts.isEmpty()) {
-                return SaResult.data(List.of());
+        try {
+
+            boolean tryLock = lock.tryLock(10, TimeUnit.SECONDS);
+            if (!tryLock) {
+                return SaResult.error(SystemMessage.OPERATION_FREQUENT);
             }
 
-            List<PostVo> postVos = BeanUtil.copyToList(posts, PostVo.class);
+            if (!redisTemplate.hasKey(postHotIdKey)) {
+                //如果缓存过期，更新缓存
 
-            //查询文章用户信息
-            List<Long> userIds = posts.stream().map(Post::getUserId).distinct().toList();
-            //feign 批量查询用户信息
-            SaResult usersResult = userFeignClient.batchQueryUserByUserId(userIds);
-            if (usersResult.getCode() == 500) {
-                return SaResult.error(usersResult.getMsg());
-            }
-
-            List<UserVo> userVos = BeanUtil.copyToList((List<?>) usersResult.getData(), UserVo.class);
-            Map<Long, UserVo> collect = userVos.stream().collect(Collectors.toMap(UserVo::getId, userVo -> userVo));
-            //postVo 拼接用户信息
-            HashSet<ZSetOperations.TypedTuple<String>> typedTuples = new HashSet<>();
-            for (PostVo postVo : postVos) {
-
-                UserVo userVo = collect.get(postVo.getUserId());
-                if (userVo != null) {
-                    //判断当前用户是否点赞
-                    String likeRedisKey = RedisKey.POST_LIKES_REDIS_KEY + postVo.getId();
-                    Boolean member = redisTemplate.opsForSet().isMember(likeRedisKey, userVo.getId());
-                    if (Boolean.TRUE.equals(member)) {
-                        postVo.setIsLike(PostConstant.POST_IS_LIKED);
-                    }
-
-                    postVo.setAvatar(userVo.getAvatar());
-                    postVo.setUsername(userVo.getUsername());
-                    postVo.setLevel(userVo.getLevel());
+                List<Post> posts = lambdaQuery().lt(Post::getId, cursor)
+                        .ge(Post::getProtonCount, PostConstant.POST_HOT_MIN_PROTON_COUNT)
+                        .eq(Post::getStatus, POST_STATUS_PASS_REVIEW)
+                        .orderByDesc(Post::getProtonCount, Post::getId).list();
+                if (posts.isEmpty()) {
+                    return SaResult.data(List.of());
                 }
 
-                //更新缓存
-                String postId = postVo.getId().toString();
-                Integer protonCount = postVo.getProtonCount();
-                ZSetOperations.TypedTuple<String> stringTypedTuple = new DefaultTypedTuple<>(postId, protonCount.doubleValue());
-                typedTuples.add(stringTypedTuple);
+                List<PostVo> postVos = BeanUtil.copyToList(posts, PostVo.class);
 
-                String hotPostKey = RedisKey.POST_HOT_KEY + postId;
-                String jsonStr = JSONUtil.toJsonStr(postVo);
-                redisTemplate.opsForValue().set(hotPostKey, jsonStr);
-                redisTemplate.expire(hotPostKey, 14, TimeUnit.DAYS);
+                //查询文章用户信息
+                List<String> userIds = posts.stream().map(post -> post.getUserId().toString()).distinct().toList();
+                //feign 批量查询用户信息
+                SaResult usersResult = userFeignClient.batchQueryUserByUserId(userIds);
+                if (usersResult.getCode() == 500) {
+                    return SaResult.error(usersResult.getMsg());
+                }
+
+                List<UserVo> userVos = BeanUtil.copyToList((List<?>) usersResult.getData(), UserVo.class);
+                Map<String, UserVo> collect = userVos.stream().collect(Collectors.toMap(UserVo::getId, userVo -> userVo));
+                //postVo 拼接用户信息
+                HashSet<ZSetOperations.TypedTuple<String>> typedTuples = new HashSet<>();
+                for (PostVo postVo : postVos) {
+
+                    UserVo userVo = collect.get(postVo.getUserId());
+                    if (userVo != null) {
+                        //判断当前用户是否点赞
+                        String likeRedisKey = RedisKey.POST_LIKES_REDIS_KEY + postVo.getId();
+                        Boolean member = redisTemplate.opsForSet().isMember(likeRedisKey, userVo.getId());
+                        if (Boolean.TRUE.equals(member)) {
+                            postVo.setIsLike(PostConstant.POST_IS_LIKED);
+                        }
+
+                        postVo.setAvatar(userVo.getAvatar());
+                        postVo.setUsername(userVo.getUsername());
+                        postVo.setLevel(userVo.getLevel());
+                    }
+
+                    //更新缓存
+                    String postId = postVo.getId().toString();
+                    Integer protonCount = postVo.getProtonCount();
+                    ZSetOperations.TypedTuple<String> stringTypedTuple = new DefaultTypedTuple<>(postId, protonCount.doubleValue());
+                    typedTuples.add(stringTypedTuple);
+
+                    String hotPostKey = RedisKey.POST_HOT_KEY + postId;
+                    String jsonStr = JSONUtil.toJsonStr(postVo);
+                    redisTemplate.opsForValue().set(hotPostKey, jsonStr);
+                    redisTemplate.expire(hotPostKey, 1, TimeUnit.DAYS);
+
+                }
+                redisTemplate.opsForZSet().add(postHotIdKey, typedTuples);
+                //设置过期时间
+                redisTemplate.expire(postHotIdKey, 1, TimeUnit.DAYS);
+                return SaResult.data(postVos);
 
             }
-            redisTemplate.opsForZSet().add(postHotIdKey, typedTuples);
-            //设置过期时间
-            redisTemplate.expire(postHotIdKey, 14, TimeUnit.DAYS);
-            return SaResult.data(postVos);
-
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
 
         //缓存存在，查询缓存
@@ -366,7 +408,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         //封装
         ScrollResult<PostVo> postVoScrollResult = new ScrollResult<>();
         postVoScrollResult.setList(postVos);
-        postVoScrollResult.setCursor(maxProtonCount);
+        postVoScrollResult.setCursor(String.valueOf(maxProtonCount));
         postVoScrollResult.setOffset(newOffset);
 
         return SaResult.data(postVoScrollResult);
@@ -390,7 +432,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         Object data = saResult.getData();
         ScrollResult<?> scrollResult = BeanUtil.toBean(data, ScrollResult.class);
         List<UserVo> userVos = BeanUtil.copyToList(scrollResult.getList(), UserVo.class);
-        List<Long> followingUserId = userVos.stream().map(UserVo::getId).toList();
+        List<String> followingUserId = userVos.stream().map(UserVo::getId).toList();
 
         //查询关注作者的作品
         List<Post> posts = lambdaQuery().in(Post::getUserId, followingUserId)
@@ -402,7 +444,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
 
         //封装 postVo
         List<PostVo> postVos = BeanUtil.copyToList(posts, PostVo.class);
-        Map<Long, UserVo> collect = userVos.stream().collect(Collectors.toMap(UserVo::getId, u -> u));
+        Map<String, UserVo> collect = userVos.stream().collect(Collectors.toMap(UserVo::getId, u -> u));
         for (PostVo postVo : postVos) {
 
             UserVo userVo = collect.get(postVo.getUserId());
@@ -417,18 +459,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                 postVo.setAvatar(userVo.getAvatar());
                 postVo.setLevel(userVo.getLevel());
                 postVo.setUsername(userVo.getUsername());
+                postVo.setCommentCount(String.valueOf(commentService.countCommentsByPostId(Long.valueOf(postVo.getId()))));
+
             }
         }
 
-        //封装返回值
-        ScrollResult<PostVo> postVoScrollResult = new ScrollResult<>();
-        if (!postVos.isEmpty()) {
-            cursor = postVos.get(postVos.size() - 1).getId();
-        }
-        postVoScrollResult.setList(postVos);
-        postVoScrollResult.setCursor(cursor);
-
-        return SaResult.data(postVoScrollResult);
+        return SaResult.data(postVos);
     }
 
     @Override
@@ -483,7 +519,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                     .setSql("proton_count = proton_count + " + protons)
                     .update();
             if (!update) {
-                throw new RuntimeException();
+                return SaResult.error(SystemMessage.SYSTEM_ERROR);
             }
 
             //redis 记录该用户已打赏
@@ -541,8 +577,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                 .page(postPage);
 
         List<Post> posts = postPage.getRecords();
-        List<Long> postUserIds = posts.stream()
-                .map(Post::getUserId).toList();
+        List<String> postUserIds = posts.stream()
+                .map(post -> post.getUserId().toString()).toList();
 
         //远程批量查询文章对应用户，用于 vo 拼接
         SaResult saResult = userFeignClient.batchQueryUserByUserId(postUserIds);
@@ -551,7 +587,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         }
 
         List<UserVo> userVos = BeanUtil.copyToList((List<?>) saResult.getData(), UserVo.class);
-        Map<Long, UserVo> userVoMap = userVos.stream()
+        Map<String, UserVo> userVoMap = userVos.stream()
                 .collect(Collectors.toMap(UserVo::getId, u -> u));
 
         List<PostVo> postVos = BeanUtil.copyToList(posts, PostVo.class);
@@ -587,7 +623,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                 .update();
 
         if (!update) {
-            return SaResult.error();
+            return SaResult.error("文章已被审核");
         }
 
         return SaResult.ok();

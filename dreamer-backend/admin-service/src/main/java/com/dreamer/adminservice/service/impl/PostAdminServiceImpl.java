@@ -2,6 +2,7 @@ package com.dreamer.adminservice.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dreamer.adminservice.feign.PostFeignClient;
 import com.dreamer.adminservice.service.IPostAdminService;
@@ -40,12 +41,16 @@ public class PostAdminServiceImpl implements IPostAdminService {
 
         SaResult saResult = postFeignClient.checkPost(postId, status);
         if (saResult.getCode() == 500) {
-            return SaResult.error(SystemMessage.SYSTEM_ERROR);
+            return SaResult.error(saResult.getMsg());
         }
+
+        //远程查询 post 用户 id
+        SaResult postResult = postFeignClient.queryPostByPostId(postId);
+        PostVo postVo = BeanUtil.copyProperties(postResult.getData(), PostVo.class);
 
         //异步发送审核结果通知给用户
         MessageDto messageDto = MessageDto.builder()
-                .userId(StpUtil.getLoginIdAsLong())
+                .userId(Long.valueOf(postVo.getUserId()))
                 .postId(postId)
                 .status(status)
                 .content(status.equals(POST_STATUS_PASS_REVIEW) ? "您的文章审核通过" : "您的文章被驳回")

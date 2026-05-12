@@ -1,8 +1,8 @@
 package com.dreamer.messageservice.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.messageservice.entity.pojo.UserMessage;
+import com.dreamer.messageservice.entity.vo.MessageVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -13,10 +13,10 @@ import java.util.List;
 public interface UserMessageMapper extends BaseMapper<UserMessage> {
 
     @Select("select count(*) from user_message where user_id = #{userId} and read_status = 0")
-    int messageNotReadCount(Integer userId);
+    int messageNotReadCount(Long userId);
 
-    List<MessageDto> listMessage(int userId);
+    List<MessageVo> listMessage(long userId);
 
     @Update("update user_message set read_status = 1 where user_id = #{userId}")
-    void isRead(int userId);
+    void isRead(long userId);
 }

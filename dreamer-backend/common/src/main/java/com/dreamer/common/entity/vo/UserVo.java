@@ -14,7 +14,7 @@ public class UserVo extends BaseEntity {
     /**
      * 用户ID
      */
-    private Long id;
+    private String id;
 
     /**
      * 账号（邮箱）
@@ -65,4 +65,14 @@ public class UserVo extends BaseEntity {
      * 计算后的 level 等级
      */
     private Integer level;
+
+    /**
+     * 关注数
+     */
+    private Long followingCount;
+
+    /**
+     * 粉丝数
+     */
+    private Long fansCount;
 }

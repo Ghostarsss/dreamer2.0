@@ -21,4 +21,6 @@ public interface IFollowingService extends IService<UserFollow> {
     SaResult listFansByUserId(Long userId, Long cursor, Integer offset);
 
     void removeFollowingAndFansByUserId(Long userId);
+
+    SaResult checkFollowStatus(Long userId);
 }

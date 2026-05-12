@@ -10,5 +10,7 @@ public class PostConstant {
 
     public static final Integer POST_IS_LIKED = 1;
 
+    public static final Integer POST_IS_UNLIKED = 0;
+
     public static final Integer POST_PROTON_MAX = 20;
 }

@@ -18,7 +18,6 @@ import com.dreamer.common.constant.UserConstant;
 import com.dreamer.userservice.entity.pojo.UserFollow;
 import com.dreamer.common.entity.vo.UserVo;
 import com.dreamer.userservice.key.LockKey;
-import com.dreamer.userservice.key.RedisKey;
 import com.dreamer.userservice.mapper.FollowingMapper;
 import com.dreamer.userservice.message.FollowingMessage;
 import com.dreamer.userservice.service.IFollowingService;
@@ -140,7 +139,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
             return SaResult.error(UserMessage.USER_IS_BANNED_MESSAGE);
         }
 
-        int currentUserId = StpUtil.getSession().getInt("userId");
+        long currentUserId = StpUtil.getLoginIdAsLong();
 
         //取关业务
         lambdaUpdate().eq(UserFollow::getUserId, currentUserId).eq(UserFollow::getFollowedUserId, userId).remove();
@@ -233,7 +232,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //封装返回
         userVoScrollResult.setList(userVoList);
         userVoScrollResult.setOffset(newOffset);
-        userVoScrollResult.setCursor(minTime);
+        userVoScrollResult.setCursor(String.valueOf(minTime));
 
         return SaResult.data(userVoScrollResult);
     }
@@ -308,7 +307,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         }
 
         ScrollResult<UserVo> fansScrollResult = new ScrollResult<>();
-        fansScrollResult.setCursor(maxTime);
+        fansScrollResult.setCursor(String.valueOf(maxTime));
         fansScrollResult.setOffset(newOffset);
 
         if (fansIds.isEmpty()) {
@@ -440,7 +439,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //封装返回
         userVoScrollResult.setList(userVoList);
         userVoScrollResult.setOffset(newOffset);
-        userVoScrollResult.setCursor((long) maxTime);
+        userVoScrollResult.setCursor(String.valueOf(maxTime));
 
         return SaResult.data(userVoScrollResult);
     }
@@ -519,7 +518,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
 
         fansVoScrollResult.setList(fansVo);
         fansVoScrollResult.setOffset(newOffset);
-        fansVoScrollResult.setCursor(maxTime);
+        fansVoScrollResult.setCursor(String.valueOf(maxTime));
         return SaResult.data(fansVoScrollResult);
     }
 
@@ -537,5 +536,17 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         String fansKey = USER_FANS_KEY + userId;
         redisTemplate.delete(List.of(followingKey, fansKey));
 
+    }
+
+    @Override
+    public SaResult checkFollowStatus(Long userId) {
+
+        String redisKey = USER_FOLLOWING_KEY + StpUtil.getLoginIdAsString();
+        Double score = redisTemplate.opsForZSet().score(redisKey, userId.toString());
+        if (score != null) {
+            return SaResult.ok("1");
+        }
+
+        return SaResult.ok("0");
     }
 }

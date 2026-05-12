@@ -1,7 +1,6 @@
 package com.dreamer.postservice.feign;
 
 import cn.dev33.satoken.util.SaResult;
-import org.apache.ibatis.annotations.Update;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +18,7 @@ public interface UserFeignClient {
     public SaResult queryUserById(@PathVariable String userId);
 
     @PostMapping("/users/batch-query-user")
-    public SaResult batchQueryUserByUserId(List<Long> userIds);
+    public SaResult batchQueryUserByUserId(List<String> userIds);
 
     @GetMapping("/follows/{userId}/following")
     public SaResult listFollowingByUserId(@PathVariable Long userId, @RequestParam(required = false) Long cursor

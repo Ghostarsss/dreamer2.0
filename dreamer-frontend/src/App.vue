@@ -2,7 +2,7 @@
   <el-container class="layout">
 
     <!-- 登录页不显示导航栏 -->
-    <Navbar v-if="!(isLoginPage || isRegisterPage)" />
+    <Navbar v-if="!(isLoginPage || isRegisterPage || isUserProfilePage)" />
 
     <!-- 内容区域 -->
     <el-main class="main">
@@ -22,6 +22,7 @@ const route = useRoute()
 // 判断是否是登录页（根据你的路由路径改）
 const isLoginPage = computed(() => route.path === '/login')
 const isRegisterPage = computed(() => route.path === '/register')
+const isUserProfilePage = computed(() => route.path.startsWith('/user'))
 </script>
 
 <style>
@@ -32,7 +33,8 @@ const isRegisterPage = computed(() => route.path === '/register')
 }
 
 .main {
-  padding-top: 60px;
+  padding: 60px 0 0 0;
+  --el-main-padding: 0px !important;
 }
 
 .no-padding {

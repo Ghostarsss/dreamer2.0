@@ -1,7 +1,9 @@
 package com.dreamer.authservice.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.authservice.feign.UserFeignClient;
 import com.dreamer.authservice.utils.AliOSSUtil;
@@ -10,6 +12,7 @@ import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
 import com.dreamer.authservice.mapper.RegisterMapper;
 import com.dreamer.authservice.service.IRegisterService;
+import com.dreamer.common.message.SystemMessage;
 import com.dreamer.common.utils.PasswordUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -169,6 +172,7 @@ public class RegisterServiceImpl extends ServiceImpl<RegisterMapper, User> imple
 
             //注册用户
             User user = BeanUtil.copyProperties(userDto, User.class);
+            user.setUsername(StrUtil.cleanBlank(userDto.getUsername()));
 
             //springboot-security 密码加密
             String password = userDto.getPassword();
@@ -178,12 +182,15 @@ public class RegisterServiceImpl extends ServiceImpl<RegisterMapper, User> imple
             user.setPassword(encode);
 
             //openfeign 远程同步调用
-            userFeignClient.register(user);
+            SaResult saResult = userFeignClient.register(user);
+            if (saResult.getCode() != 200) {
+                return SaResult.error(SYSTEM_ERROR);
+            }
 
             //删除 redis 的验证码和其冷却时间
             redisTemplate.delete(List.of(redisKey, EMAIL_REDIS_CODE_COOLDOWN_KEY + email));
 
-            return SaResult.ok(REGISTER_SUCCESS);
+            return SaResult.ok(saResult.getMsg());
         } catch (Exception e) {
             log.error("用户注册报错: {}", e.getMessage());
             return SaResult.error(SYSTEM_ERROR);

@@ -4,6 +4,10 @@ import cn.dev33.satoken.util.SaResult;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.List;
 
 @FeignClient(name = "user-service")
 public interface UserFeignClient {
@@ -13,5 +17,8 @@ public interface UserFeignClient {
 
     @GetMapping("/users/all-admin")
     public SaResult listAdmin();
+
+    @PostMapping("/users/batch-query-user")
+    public SaResult batchQueryUserByUserId(@RequestBody List<String> userIds);
 
 }

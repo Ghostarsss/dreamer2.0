@@ -16,10 +16,13 @@ import com.dreamer.common.entity.dto.UserDto;
 import com.dreamer.common.entity.pojo.User;
 import com.dreamer.common.utils.PasswordUtil;
 import com.dreamer.common.entity.vo.UserVo;
+import com.dreamer.userservice.entity.pojo.UserFollow;
 import com.dreamer.userservice.feign.LetterFeignClient;
 import com.dreamer.userservice.key.LockKey;
 import com.dreamer.userservice.mapper.UserMapper;
+import com.dreamer.userservice.service.IFollowingService;
 import com.dreamer.userservice.service.IUserService;
+import com.dreamer.userservice.service.IVPService;
 import com.dreamer.userservice.utils.AliOSSUtil;
 import com.dreamer.userservice.utils.LevelUtil;
 import com.dreamer.userservice.utils.MailUtil;
@@ -29,6 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -62,6 +67,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     private final RedissonClient redissonClient;
     private final UserMapper userMapper;
     private final LetterFeignClient letterFeignClient;
+    private final IVPService vpService;
+
+    @Autowired
+    @Lazy
+    private IFollowingService followingService;
 
     @Override
     public SaResult register(User user) {
@@ -131,7 +141,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public SaResult getMe() {
 
-        User user = getById(StpUtil.getSession().getString("userId"));
+        long userId = StpUtil.getLoginIdAsLong();
+        User user = getById(userId);
 
         if (user == null) {
             return SaResult.error(USER_NOT_EXISTS);
@@ -144,18 +155,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         int level = LevelUtil.calculateLevel(exp);
         userVo.setLevel(level);
 
+        //查询用户关注数和被关注数
+        long fansCount = followingService.count(new LambdaQueryWrapper<UserFollow>().eq(UserFollow::getFollowedUserId, userId));
+        long followingCount = followingService.count(new LambdaQueryWrapper<UserFollow>().eq(UserFollow::getUserId, userId));
+        userVo.setFollowingCount(followingCount);
+        userVo.setFansCount(fansCount);
+
         //添加网站总浏览量
-        redisTemplate.opsForValue().increment("statistics:view",1);
+        redisTemplate.opsForValue().increment("statistics:view", 1);
         return SaResult.data(userVo);
     }
 
     @Override
     public SaResult updateAvatars(MultipartFile avatar) {
+
+        //为防止恶意上传头像，每次修改头像需要耗费 10颗质子
+        long userId = StpUtil.getLoginIdAsLong();
+
+        SaResult saResult = vpService.deductProton(userId, 10);
+        if (saResult.getCode() != 200) {
+            return SaResult.error(saResult.getMsg());
+        }
+
         try {
             String avatarUrl = aliOSSUtil.addAli(avatar);
 
             //修改用户头像数据库
-            int userId = StpUtil.getSession().getInt("userId");
             boolean update = lambdaUpdate().set(User::getAvatar, avatarUrl).eq(User::getId, userId).update();
 
             if (update) {
@@ -171,7 +196,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public SaResult sendVerifyCode() {
-        User user = getById(StpUtil.getSession().getInt("userId"));
+        User user = getById(StpUtil.getSession().getLong("userId"));
 
         if (user == null) {
             return SaResult.error(USER_NOT_EXISTS);
@@ -215,7 +240,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 return SaResult.error(EMAIL_VERIFY_CODE_SEND_ERROR);
             }
 
-            return SaResult.ok("验证码已过期,请重新发送");
+            return SaResult.ok(EMAIL_VERIFY_CODE_SEND_SUCCESS);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
@@ -232,36 +257,50 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         Long userId = StpUtil.getSession().getLong("userId");
         User user = getById(userId);
         String email = user.getEmail();
-
+        String password = userDto.getPassword();
         log.info("用户数据更新: {}", userDto);
 
-        //校验验证码
-        String verifyCode = userDto.getVerifyCode();
-        String redisKey = EMAIL_REDIS_VERIFY_CODE_KEY + email;
-
-        String code = redisTemplate.opsForValue().get(redisKey);
-        if (StrUtil.isBlank(code)) {
-            return SaResult.error(EMAIL_VERIFY_CODE_EXCEEDED);
-        }
-        if (!verifyCode.equals(code)) {
-            return SaResult.error(EMAIL_VERIFY_CODE_ERROR);
-        }
-
-        //判断 dto 数据是否合法
-        String password = userDto.getPassword();
-        if (StrUtil.isBlank(userDto.getAvatar()) || (!PasswordUtil.isValidPassword(password)) || StrUtil.isBlank(userDto.getUsername()) || (!userDto.getEmail().equals(email))) {
-            return SaResult.error(USER_FORMAT_ERROR);
-        }
-
-        //加密密码
-        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        String encode = bCryptPasswordEncoder.encode(password);
-
-        //更新用户数据
         User updateUser = BeanUtil.copyProperties(userDto, User.class);
         updateUser.setId(userId);
         updateUser.setUpdateTime(LocalDateTime.now());
-        updateUser.setPassword(encode);
+        updateUser.setPassword(null);
+
+        //如果有密码需要修改
+        if (!userDto.getPassword().isEmpty()) {
+            //校验验证码
+
+            String verifyCode = userDto.getVerifyCode();
+            String redisKey = EMAIL_REDIS_VERIFY_CODE_KEY + email;
+
+            String code = redisTemplate.opsForValue().get(redisKey);
+            if (StrUtil.isBlank(code)) {
+                return SaResult.error(EMAIL_VERIFY_CODE_EXCEEDED);
+            }
+            if (!verifyCode.equals(code)) {
+                return SaResult.error(EMAIL_VERIFY_CODE_ERROR);
+            }
+
+            //清除验证码和冷却时间
+            String cooldownKey = EMAIL_REDIS_CODE_COOLDOWN_KEY + email;
+            redisTemplate.delete(List.of(redisKey, cooldownKey));
+
+            //判断 dto 数据是否合法
+
+            if (StrUtil.isBlank(userDto.getAvatar()) || (!PasswordUtil.isValidPassword(password)) || StrUtil.isBlank(userDto.getUsername()) || (!userDto.getEmail().equals(email))) {
+                return SaResult.error(USER_FORMAT_ERROR);
+            }
+
+            //加密密码
+            BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+            String encode = bCryptPasswordEncoder.encode(password);
+            updateUser.setPassword(encode);
+
+            //退出登录
+            StpUtil.logout(userId);
+        }
+
+
+        //更新用户数据
         if (StrUtil.isBlank(updateUser.getBio())) {
             updateUser.setBio(DEFAULT_BIO);
         }
@@ -271,14 +310,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return SaResult.error(SYSTEM_ERROR);
         }
 
-        //清除验证码和冷却时间
-        String cooldownKey = EMAIL_REDIS_CODE_COOLDOWN_KEY + email;
-        redisTemplate.delete(List.of(redisKey, cooldownKey));
         return SaResult.ok(USER_UPDATE_SUCCESS);
     }
 
     @Override
-    public SaResult queryUserById(Integer userId) {
+    public SaResult queryUserById(Long userId) {
 
         User user = getById(userId);
         if (user == null) {
@@ -324,7 +360,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
-    public SaResult batchQueryUserByUserId(List<Long> userIds) {
+    public SaResult batchQueryUserByUserId(List<String> userIds) {
 
         if (userIds == null) {
             return SaResult.error();

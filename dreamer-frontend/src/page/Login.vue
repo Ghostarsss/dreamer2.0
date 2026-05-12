@@ -54,7 +54,7 @@ import {useRouter} from 'vue-router'
 import {ArrowLeft} from '@element-plus/icons-vue'
 import axios from 'axios'
 import type {FormInstance, FormRules} from 'element-plus'
-import {login} from "@/api/auth.ts";
+import {login} from "@/api/authApi.ts";
 
 // 表单数据类型
 interface LoginForm {

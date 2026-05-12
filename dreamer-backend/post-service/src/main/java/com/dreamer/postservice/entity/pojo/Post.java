@@ -52,11 +52,6 @@ public class Post {
     private Integer likeCount;
 
     /**
-     * 评论数
-     */
-    private Integer commentCount;
-
-    /**
      * 修改次数
      */
     private Integer editCount;

@@ -96,4 +96,14 @@ public class FollowingController {
         return followingService.removeFansByUserId(userId);
     }
 
+    /**
+     * 查询当前用户是否关注指定用户
+     *
+     * @param userId
+     * @return
+     */
+    @GetMapping("/is-followed/{userId}")
+    public SaResult checkFollowStatus(@PathVariable Long userId) {
+        return followingService.checkFollowStatus(userId);
+    }
 }

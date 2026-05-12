@@ -168,7 +168,7 @@ public class VPServiceImpl extends ServiceImpl<VPMapper, User> implements IVPSer
     public void postLikedEXP(MessageDto messageDto) {
         //feign 查询文章作者 id
         SaResult saResult = postFeignClient.queryPostByPostId(messageDto.getPostId());
-        Long userId = BeanUtil.copyProperties(saResult.getData(), PostVo.class).getUserId();
+        Long userId = Long.valueOf(BeanUtil.copyProperties(saResult.getData(), PostVo.class).getUserId());
 
 
         lambdaUpdate()
@@ -198,7 +198,7 @@ public class VPServiceImpl extends ServiceImpl<VPMapper, User> implements IVPSer
 
         //feign 查询文章作者 id
         SaResult saResult = postFeignClient.queryPostByPostId(messageDto.getPostId());
-        Long userId = BeanUtil.copyProperties(saResult.getData(), PostVo.class).getUserId();
+        Long userId = Long.valueOf(BeanUtil.copyProperties(saResult.getData(), PostVo.class).getUserId());
 
 
         lambdaUpdate()

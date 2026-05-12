@@ -45,6 +45,11 @@ public class MessageDto {
     private Long postId;
 
     /**
+     * 文章 ID
+     */
+    private Long commentId;
+
+    /**
      * 文章审核状态
      */
     private Integer status;

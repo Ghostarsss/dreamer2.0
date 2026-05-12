@@ -99,7 +99,7 @@ public class UserController {
      */
     @GetMapping("/{userId}")
     public SaResult queryUserById(@PathVariable String userId) {
-        return userService.queryUserById(Integer.valueOf(userId));
+        return userService.queryUserById(Long.valueOf(userId));
     }
 
     /**
@@ -128,7 +128,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/batch-query-user")
-    public SaResult batchQueryUserByUserId(@RequestBody List<Long> userIds) {
+    public SaResult batchQueryUserByUserId(@RequestBody List<String> userIds) {
         return userService.batchQueryUserByUserId(userIds);
     }
 

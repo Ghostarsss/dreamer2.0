@@ -64,14 +64,15 @@ public class LikesServiceImpl extends ServiceImpl<LikesMapper, Likes> implements
     public SaResult likePost(Long postId) {
 
         //判断文章是否存在，是否已审核通过
-        Long postUserId = postService.lambdaQuery().eq(Post::getId, postId)
+        Post post = postService.lambdaQuery().eq(Post::getId, postId)
                 .select(Post::getUserId)
                 .eq(Post::getStatus, PostConstant.POST_STATUS_PASS_REVIEW)
-                .one()
-                .getUserId();
-        if (postUserId == null) {
+                .one();
+        if (post == null) {
             return SaResult.error(PostMessage.POST_NOT_EXIST);
         }
+
+        Long postUserId = post.getUserId();
 
         long userId = StpUtil.getLoginIdAsLong();
         //封装异步消息 Dto
@@ -175,15 +176,17 @@ public class LikesServiceImpl extends ServiceImpl<LikesMapper, Likes> implements
             boolean remove = lambdaUpdate().eq(Likes::getUserId, userId)
                     .eq(Likes::getCommentId, commentId)
                     .remove();
+            String redisKey = RedisKey.POST_COMMENT_LIKES_REDIS_KEY + commentId;
             if (remove) {
                 //取消点赞
                 commentService.lambdaUpdate().eq(Comment::getId, commentId)
                         .setSql("like_count = like_count - 1")
                         .update();
+                redisTemplate.opsForSet().remove(redisKey, String.valueOf(userId));
                 return SaResult.ok(UNLIKE_SUCCESS_MESSAGE);
             }
 
-            //点赞文章
+            //点赞文章评论
             Likes likes = new Likes();
             likes.setCommentId(commentId);
             likes.setPostId(comment.getPostId());
@@ -191,6 +194,7 @@ public class LikesServiceImpl extends ServiceImpl<LikesMapper, Likes> implements
             likes.setCreateTime(LocalDateTime.now());
 
             save(likes);
+            redisTemplate.opsForSet().add(redisKey, String.valueOf(userId));
 
             //更新指定评论点赞数量
             commentService.lambdaUpdate().eq(Comment::getId, commentId)
@@ -203,8 +207,9 @@ public class LikesServiceImpl extends ServiceImpl<LikesMapper, Likes> implements
                 MessageDto messageDto = MessageDto.builder()
                         .sendId(userId)
                         .userId(comment.getUserId())
+                        .commentId(commentId)
                         .build();
-                rabbitTemplate.convertAndSend(RabbitMQConstant.POST_LIKE_MESSAGE_QUEUE,messageDto);
+                rabbitTemplate.convertAndSend(RabbitMQConstant.POST_LIKE_MESSAGE_QUEUE, messageDto);
             }
 
             return SaResult.ok(LIKE_SUCCESS_MESSAGE);

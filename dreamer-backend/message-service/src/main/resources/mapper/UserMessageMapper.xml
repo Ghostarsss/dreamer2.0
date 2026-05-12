@@ -7,8 +7,14 @@
 <mapper namespace="com.dreamer.messageservice.mapper.UserMessageMapper">
 
 
-    <select id="listMessage" resultType="com.dreamer.common.entity.dto.MessageDto">
-        select *
+    <select id="listMessage" resultType="com.dreamer.messageservice.entity.vo.MessageVo">
+        select
+            um.id as id,
+            read_status,
+            type,
+            send_id,
+            content,
+            um.create_time as create_time
         from user_message um
                  inner join message_template mt
                             on mt.id = um.message_id

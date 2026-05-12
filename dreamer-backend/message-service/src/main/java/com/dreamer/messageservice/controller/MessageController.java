@@ -23,18 +23,25 @@ public class MessageController {
 
     @Autowired
     private IMessageService messageService;
-    @Autowired
-    private StringRedisTemplate redisTemplate;
+
+
+    /**
+     * 清空消息
+     * @return
+     */
+    @DeleteMapping
+    public SaResult clearMessage() {
+        return messageService.clearMessage();
+    }
 
 
     /**
      * 查询该用户未读消息数
-     * @param isRead
      * @return
      */
     @GetMapping("/count")
-    public SaResult messageCount(@RequestParam("isRead") String isRead) {
-        return messageService.messageCount(isRead);
+    public SaResult messageCount() {
+        return messageService.messageCount();
     }
 
     /**

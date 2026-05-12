@@ -23,4 +23,7 @@ public interface PostFeignClient {
 
     @GetMapping("/comments/admin/count")
     Long countComments();
+
+    @GetMapping("/posts/{postId}")
+    public SaResult queryPostByPostId(@PathVariable Long postId);
 }

@@ -10,12 +10,12 @@ public class PostVo {
     /**
      * 文章ID
      */
-    private Long id;
+    private String id;
 
     /**
      * 发布文章的用户ID
      */
-    private Long userId;
+    private String userId;
 
     /**
      * 用户名
@@ -60,7 +60,7 @@ public class PostVo {
     /**
      * 评论数
      */
-    private Integer commentCount;
+    private String commentCount;
 
     /**
      * 修改次数

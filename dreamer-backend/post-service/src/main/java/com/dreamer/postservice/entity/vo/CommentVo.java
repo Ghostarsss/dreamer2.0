@@ -10,22 +10,37 @@ public class CommentVo {
     /**
      * 评论ID
      */
-    private Long id;
+    private String id;
 
     /**
      * 评论用户ID
      */
-    private Long userId;
+    private String userId;
 
     /**
      * 文章ID
      */
-    private Long postId;
+    private String postId;
+
+    /**
+     * 文章作者ID
+     */
+    private String postUserId;
 
     /**
      * 父评论ID，NULL表示一级评论
      */
-    private Long parentId;
+    private String parentId;
+
+    /**
+     * 若是二级评论，显示回复对象 userid
+     */
+    private String replyUserId;
+
+    /**
+     * 若是二级评论，显示回复对象 username
+     */
+    private String replyToUsername;
 
     /**
      * 评论内容
@@ -62,5 +77,10 @@ public class CommentVo {
      * 计算后的 level 等级
      */
     private Integer level;
+
+    /**
+     * 当前用户是否点赞
+     */
+    private Integer isLike;
 
 }

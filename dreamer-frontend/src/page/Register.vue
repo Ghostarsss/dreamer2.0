@@ -68,9 +68,9 @@
         <!-- 性别 -->
         <el-form-item prop="gender">
           <el-radio-group v-model="form.gender">
-            <el-radio label="1">男</el-radio>
-            <el-radio label="2">女</el-radio>
-            <el-radio label="3">未知</el-radio>
+            <el-radio value="1">男</el-radio>
+            <el-radio value="2">女</el-radio>
+            <el-radio value="3">未知</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -96,7 +96,7 @@ import {ElMessage} from 'element-plus'
 import type {FormInstance, FormRules} from 'element-plus'
 import {Plus, ArrowLeft} from '@element-plus/icons-vue'
 import {useRouter} from 'vue-router'
-import {avatarUpload, register, sendVerifyCode} from "@/api/auth.ts";
+import {avatarUpload, register, sendVerifyCode} from "@/api/authApi.ts";
 
 interface RegisterForm {
   avatar: string

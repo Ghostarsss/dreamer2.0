@@ -7,12 +7,17 @@
         <p class="sub">{{ subSlogan }}</p>
       </div>
 
-      <div class="top-card">
+      <div class="top-card" v-if=isLogin>
         <div class="slogan-title">每日 slogan</div>
         <div class="slogan-text">{{ slogan }}</div>
 
-        <el-button type="primary" class="sign-btn" @click="handleSign">
-          签到
+        <el-button
+            :type="isSigned ? 'success' : 'primary'"
+            class="sign-btn"
+            @click="handleSign"
+            :disabled="isSigned"
+        >
+          {{ isSigned ? '已签到' : '签到' }}
         </el-button>
       </div>
     </section>
@@ -68,6 +73,8 @@
 
 <script setup lang="ts">
 import {ref, onMounted} from 'vue'
+import {checkSign, sign} from "@/api/userApi.ts";
+import {ElMessage} from "element-plus";
 
 
 // slogan
@@ -101,7 +108,18 @@ const icons = [
 
 const randomIcon = ref<string>('')
 
+const isLogin = ref(false)
+
+//是否签到
+const isSigned = ref(false)
+
 onMounted(() => {
+  //判断是否登录
+  if (localStorage.getItem("satoken")) {
+    isLogin.value = true
+    //判断签到状态
+    isSign()
+  }
   const randomIndex = Math.floor(Math.random() * slogans.length)
   slogan.value = slogans[randomIndex] ?? '今天也要保持好奇心 ✨'
 
@@ -113,7 +131,23 @@ onMounted(() => {
 })
 
 // 签到
-const handleSign = () => {
+const handleSign = async () => {
+
+  const res = await sign();
+  if (res.data.code === 200) {
+    ElMessage.success({message: res.data.msg, duration: 1000})
+    isSigned.value = true
+  } else {
+    ElMessage.error(res.data.msg)
+  }
+
+}
+
+//判断是否签到
+const isSign = async () => {
+
+  const res = await checkSign();
+  isSigned.value = res.data.msg === "1";
 }
 </script>
 
