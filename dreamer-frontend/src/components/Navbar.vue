@@ -29,6 +29,11 @@
         </el-menu>
       </div>
 
+      <!-- mobile menu button -->
+      <div class="mobile-menu-btn" @click="mobileMenuOpen = true">
+        <el-icon><Menu /></el-icon>
+      </div>
+
       <!-- 右侧：登录 / 用户 -->
       <div style="margin-left: auto;margin-right: 10px;">
         <!-- 未登录 -->
@@ -91,6 +96,24 @@
   <!--  消息弹窗-->
   <MessageModal v-model:visible="showDialog"/>
 
+  <!-- Mobile Drawer Menu -->
+  <el-drawer
+    v-model="mobileMenuOpen"
+    direction="ltr"
+    size="70%"
+  >
+    <el-menu
+      mode="vertical"
+      :default-active="activeMenu"
+      @select="handleMobileSelect"
+    >
+      <el-menu-item index="/home">首页</el-menu-item>
+      <el-menu-item index="/post">树洞</el-menu-item>
+      <el-menu-item index="/futureLetter">未来信箱</el-menu-item>
+      <el-menu-item index="/feedback">反馈</el-menu-item>
+    </el-menu>
+  </el-drawer>
+
   <!-- 未登录提示 -->
   <transition name="popup-fade">
     <div
@@ -124,7 +147,8 @@ import {
 } from "element-plus";
 
 import {
-  Message
+  Message,
+  Menu
 } from '@element-plus/icons-vue'
 
 import {
@@ -181,10 +205,17 @@ const goRegister = () => router.push('/register')
 
 const showDialog = ref(false)
 
+const mobileMenuOpen = ref(false)
+
 /* 消息页面 */
 const goMessage = () => {
   showDialog.value = true
   hasNewMessage.value = false
+}
+
+const handleMobileSelect = (index: string) => {
+  router.push(index)
+  mobileMenuOpen.value = false
 }
 
 /* 用户操作 */
@@ -204,6 +235,7 @@ const logout = async () => {
   }
 
   localStorage.removeItem('satoken');
+  localStorage.removeItem('userId');
 
   isLogin.value = false
   hasNewMessage.value = false
@@ -320,6 +352,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.mobile-menu-btn {
+  display: none;
+}
+
 .logo-text {
   font-size: 18px;
   font-weight: bold;
@@ -551,5 +587,96 @@ onUnmounted(() => {
 .popup-fade-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+@media screen and (max-width: 768px) {
+
+  .navbar {
+    height: auto;
+    padding-bottom: 10px;
+  }
+
+  .nav-row {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .left {
+    margin-left: 0;
+  }
+
+  .logo-text {
+    font-size: 16px;
+  }
+
+  .logo-img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .menu-container {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-left: 10px;
+    cursor: pointer;
+  }
+
+  .menu {
+    width: max-content;
+    min-width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  :deep(.el-menu--horizontal) {
+    border-bottom: none;
+  }
+
+  :deep(.el-menu--horizontal > .el-menu-item) {
+    height: 42px;
+    line-height: 42px;
+    padding: 0 14px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .mail-button {
+    right: 20px;
+    bottom: 20px;
+    width: 62px;
+    height: 62px;
+  }
+
+  .mail-icon {
+    font-size: 20px;
+  }
+
+  .mail-text {
+    display: none;
+  }
+
+  .login-popup {
+    right: 15px;
+    left: 15px;
+    bottom: 15px;
+    width: auto;
+    padding: 14px;
+  }
+
+  .popup-title {
+    font-size: 14px;
+  }
+
+  .popup-desc {
+    font-size: 12px;
+    line-height: 1.5;
+  }
 }
 </style>

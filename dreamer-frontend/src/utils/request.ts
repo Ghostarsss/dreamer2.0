@@ -1,6 +1,6 @@
 import axios from "axios";
 import router from "@/router/router.ts";
-import {ElMessage} from "element-plus";
+import { ElMessage } from "element-plus";
 
 const request = axios.create({
     baseURL: "/api",
@@ -8,29 +8,40 @@ const request = axios.create({
     withCredentials: true
 });
 
-// 登录、注册接口排除，不做登录拦截
+// 白名单：不需要登录就能访问的接口
 const excludePath = [
     "/login",
     "/register",
-    "/post/new",
-    "/post"
+    "/posts/new",
+    "/posts/hot",
+    "/comments/**",
+    "/letters/opened",
 ];
 
+// 请求拦截器
 request.interceptors.request.use((config) => {
     const token = localStorage.getItem("satoken");
-    // 当前请求接口地址
-    const reqUrl = config.url;
+    const reqUrl = config.url || ""; // 防止 undefined
 
-    // 判断：不在排除名单 并且 没有token → 跳登录
-    const isExclude = excludePath.some(path => reqUrl && reqUrl.includes(path));
+    // 匹配白名单（支持 /** 通配符）
+    const isExclude = excludePath.some(path => {
+        // 处理通配符：/xxx/** → 匹配所有以该路径开头的地址
+        if (path.endsWith("/**")) {
+            const prefix = path.slice(0, -3);
+            return reqUrl.startsWith(prefix);
+        }
+        // 普通路径：精确匹配
+        return reqUrl === path;
+    });
+
+    // 不在白名单 + 没有token → 拦截
     if (!isExclude && !token) {
+        ElMessage.warning("请先登录");
         router.push("/login");
-        ElMessage.warning("请先登录")
-        // 中断请求
-        return Promise.reject("未登录，已拦截");
+        return Promise.reject("未登录，请求已中断");
     }
 
-    // 有token就带上
+    // 携带 token
     if (token) {
         config.headers.satoken = token;
     }
@@ -38,10 +49,13 @@ request.interceptors.request.use((config) => {
     return config;
 });
 
-// 保留默认响应拦截即可
+// 响应拦截器
 request.interceptors.response.use(
-    res => res,
-    err => Promise.reject(err)
+    (res) => res,
+    (err) => {
+        console.error("请求异常：", err);
+        return Promise.reject(err);
+    }
 );
 
 export default request;

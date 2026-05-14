@@ -15,6 +15,12 @@ import MyFollowing from "@/page/MyFollowing.vue";
 import FollowingPost from "@/page/FollowingPost.vue";
 import MyFans from "@/page/MyFans.vue";
 import MyVP from "@/page/MyVP.vue";
+import UserFollowing from "@/page/UserFollowing.vue";
+import UserFans from "@/page/UserFans.vue";
+import UserVP from "@/page/UserVP.vue";
+import Letter from "@/page/Letter.vue";
+import LetterOpening from "@/page/LetterOpening.vue";
+import {ElMessage} from "element-plus";
 
 const routes = [
     {path: '/', redirect: '/home'},
@@ -22,6 +28,8 @@ const routes = [
     {path: '/login', component: Login},
     {path: '/register', component: Register},
     {path: '/feedback', component: Feedback},
+    {path: '/futureLetter', component: Letter},
+    {path: '/futureLetter/opening', component: LetterOpening},
 
     {
         path: '/user',
@@ -50,7 +58,19 @@ const routes = [
             {
                 path: 'home/:userId',
                 component: UserHome
-            }
+            },
+            {
+                path: 'following/:userId',
+                component: UserFollowing
+            },
+            {
+                path: 'fans/:userId',
+                component: UserFans
+            },
+            {
+                path: 'vp/:userId',
+                component: UserVP
+            },
         ]
     },
 
@@ -85,6 +105,28 @@ const routes = [
 const router = createRouter({
     history: createWebHistory(),
     routes,
+})
+
+
+//路由守卫
+const interceptList = [
+    '/feedback',
+]
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem('satoken')
+
+    if (!token) {
+        if (interceptList.includes(to.path)) {
+            ElMessage.warning('请先登录')
+            next('/login')
+        } else {
+            next()
+        }
+    } else {
+        next()
+    }
 })
 
 export default router

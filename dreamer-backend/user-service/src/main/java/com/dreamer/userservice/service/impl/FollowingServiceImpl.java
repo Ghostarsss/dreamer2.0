@@ -66,7 +66,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         }
 
         //禁止用户关注自己
-        long currentUserId = (long) StpUtil.getSession().get("userId");
+        long currentUserId = StpUtil.getLoginIdAsLong();
         if (userId.equals(String.valueOf(currentUserId))) {
             log.error("该用户尝试关注自己，存在危险行为，用户 id: {}", currentUserId);
             return SaResult.error(PROHIBIT_FOLLOWING_OWN);
@@ -112,7 +112,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
             redisTemplate.expire(fansKey, 7, TimeUnit.DAYS);
 
             //异步被关注用户消息和加经验
-            FollowingRabbitDto followingRabbitDto = FollowingRabbitDto.builder().followedId(Long.valueOf(userId)).fansId(Long.valueOf(currentUserId)).fansUsername(currentUser.getUsername()).build();
+            FollowingRabbitDto followingRabbitDto = FollowingRabbitDto.builder().followedId(Long.valueOf(userId)).fansId(currentUserId).fansUsername(currentUser.getUsername()).build();
             EXPRabbitDto expRabbitDto = EXPRabbitDto.builder().userId(Long.valueOf(userId)).expIncrement(EXPConstant.SMALL_EXP).causeUserId(currentUserId).build();
             rabbitTemplate.convertAndSend(RabbitMQConstant.USER_FOLLOWING_MESSAGE_QUEUE, followingRabbitDto);
             rabbitTemplate.convertAndSend(RabbitMQConstant.USER_FOLLOWING_EXP_QUEUE, expRabbitDto);
@@ -467,7 +467,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
                         return LocalDateTimeUtil.toEpochMilli(f.getCreateTime());
                     }));
 
-            //更新数据库
+            //更新缓存
             for (Map.Entry<Long, Long> entry : fansIdAndTime.entrySet()) {
                 redisTemplate.opsForZSet().add(fansKey, entry.getKey().toString(), entry.getValue());
             }
@@ -505,6 +505,7 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
         //查询数据库获取粉丝数据
         String join = StringUtil.join(fansIds, ',');
         List<User> users = userService.lambdaQuery()
+                .in(User::getId, fansIds)
                 .select(User::getId, User::getUsername, User::getAvatar, User::getExp)
                 .last("order by field (id , " + join + ")")
                 .list();

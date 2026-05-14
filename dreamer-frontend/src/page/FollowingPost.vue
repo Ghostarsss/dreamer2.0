@@ -372,9 +372,13 @@ const handleScroll = () => {
 
 /* 全局滚轮控制 */
 const handleGlobalWheel = (e: WheelEvent) => {
+  // mobile端不接管全局滚动
+  if (window.innerWidth <= 768) return
+
   const target = e.target as HTMLElement
   if (target.closest('.message-scroll')) return
   if (!scrollContainer.value) return
+
   e.preventDefault()
   scrollContainer.value.scrollTop += e.deltaY
 }
@@ -616,5 +620,75 @@ onUnmounted(() => {
   border: 1px solid #eee;
   margin-bottom: 20px;
   text-align: center;
+}
+
+@media screen and (max-width: 768px) {
+
+  .forum-page {
+    height: auto;
+    min-height: 100vh;
+    padding: 16px 12px;
+  }
+
+  .hot-tip {
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    margin-top: 35px;
+    border-radius: 10px;
+  }
+
+  .post-card {
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+
+  .post-header {
+    align-items: flex-start;
+  }
+
+  .user-info {
+    margin-left: 10px;
+  }
+
+  .username {
+    font-size: 14px;
+  }
+
+  .level {
+    font-size: 12px;
+  }
+
+  .time {
+    font-size: 12px;
+  }
+
+  .post-content {
+    margin-top: 14px;
+  }
+
+  .content-text {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .post-actions {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .action-item {
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .support-dialog-content {
+    gap: 14px;
+  }
+
+  .user-tip-pop {
+    display: none;
+  }
 }
 </style>

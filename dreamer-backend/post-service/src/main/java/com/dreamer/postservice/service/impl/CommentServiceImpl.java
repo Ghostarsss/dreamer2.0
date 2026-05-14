@@ -15,6 +15,7 @@ import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.entity.result.ScrollResult;
 import com.dreamer.common.entity.vo.UserVo;
 import com.dreamer.common.message.SystemMessage;
+import com.dreamer.common.message.UserMessage;
 import com.dreamer.postservice.entity.dto.CommentDto;
 import com.dreamer.postservice.entity.pojo.Comment;
 import com.dreamer.postservice.entity.pojo.Post;
@@ -83,7 +84,13 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Transactional
     public SaResult commentPostByPostId(CommentDto commentDto) {
 
-        long userId = StpUtil.getLoginIdAsLong();
+        long userId;
+        if (StpUtil.isLogin()) {
+            userId = StpUtil.getLoginIdAsLong();
+        } else {
+            return SaResult.error(UserMessage.USER_NOT_LOGIN);
+        }
+
         Long parentCommentUserId = 0L;
 
         //封装评论
@@ -367,7 +374,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
      * @return
      */
     private @NonNull List<CommentVo> getCommentVos(List<Comment> comments) {
-        String userId = StpUtil.getLoginIdAsString();
+        //如果未登录，则一定没有点赞
+        String userId;
+        if (StpUtil.isLogin()) {
+            userId = StpUtil.getLoginIdAsString();
+        } else {
+            userId = "0";
+        }
+        final String finalUserId = userId;
         List<String> commentUserIds = comments.stream().map(comment -> comment.getUserId().toString()).toList();
         SaResult saResult = userFeignClient.batchQueryUserByUserId(commentUserIds);
         Map<String, UserVo> userVoMap = BeanUtil.copyToList((List<?>) saResult.getData(), UserVo.class)
@@ -383,7 +397,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
             //判断当前用户是否点赞
             String redisKey = RedisKey.POST_COMMENT_LIKES_REDIS_KEY + c.getId();
-            Boolean member = redisTemplate.opsForSet().isMember(redisKey, userId);
+            Boolean member = redisTemplate.opsForSet().isMember(redisKey, finalUserId);
             if (Boolean.TRUE.equals(member)) {
                 c.setIsLike(1);
             } else {

@@ -335,4 +335,72 @@ onMounted(() => {
   max-height: unset;
   overflow: visible;
 }
+
+@media screen and (max-width: 768px) {
+
+  :deep(.el-dialog) {
+    width: calc(100vw - 24px) !important;
+    margin-top: 6vh !important;
+    border-radius: 14px;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 16px 16px 10px;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 14px;
+  }
+
+  :deep(.el-dialog__title) {
+    font-size: 16px;
+  }
+
+  .message-list {
+    max-height: 65vh;
+  }
+
+  .message-item {
+    gap: 10px;
+    padding: 14px 0;
+  }
+
+  .system-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+  }
+
+  .avatar-box :deep(.el-avatar) {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 14px;
+  }
+
+  .content-box {
+    gap: 6px;
+  }
+
+  .system-title,
+  .social-title {
+    font-size: 13px;
+  }
+
+  .message-content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .time {
+    font-size: 11px;
+  }
+
+  .header-actions {
+    margin-bottom: 10px;
+  }
+
+  .header-actions :deep(.el-button) {
+    width: 100%;
+  }
+}
 </style>

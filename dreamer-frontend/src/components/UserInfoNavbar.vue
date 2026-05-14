@@ -202,4 +202,64 @@ const buildPath = (basePath: string, customPath?: string) => {
 .sidebar-menu :deep(.el-menu-item:hover) {
   background: #f5f7fa;
 }
+@media screen and (max-width: 768px) {
+  .user-layout {
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .profile-sidebar {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #ebeef5;
+  }
+
+  .sidebar-header {
+    padding: 16px;
+  }
+
+  .avatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  .username {
+    font-size: 16px;
+  }
+
+  .desc {
+    font-size: 12px;
+  }
+
+  .sidebar-menu {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .sidebar-menu :deep(.el-menu) {
+    display: flex;
+    border-bottom: none;
+  }
+
+  .sidebar-menu :deep(.el-menu-item) {
+    flex-shrink: 0;
+    margin: 0;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 8px;
+  }
+
+  .content-wrapper {
+    flex: 1;
+    width: 100%;
+    height: auto;
+    padding: 14px;
+    overflow-y: auto;
+  }
+}
 </style>

@@ -9,7 +9,7 @@
     <!-- 空状态 -->
     <el-empty
         v-if="!loading && followList.length === 0"
-        description="你还没有关注任何用户"
+        description="没有关注任何用户"
     />
 
     <!-- 用户列表 -->
@@ -53,21 +53,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 取消关注 -->
-        <el-tooltip
-            content="点击取消关注"
-            placement="top"
-        >
-          <el-button
-              class="follow-btn"
-              type="primary"
-              plain
-              @click="handleUnfollow(item)"
-          >
-            已关注
-          </el-button>
-        </el-tooltip>
       </div>
     </div>
 
@@ -97,7 +82,8 @@
 import {ref, onMounted} from "vue";
 import {ElMessage, ElMessageBox} from "element-plus";
 import {Loading} from "@element-plus/icons-vue";
-import {listMyFollowing, listUserFollowing, unfollowUser} from "@/api/userApi.ts";
+import {listUserFollowing} from "@/api/userApi.ts";
+import {useRoute} from "vue-router";
 
 interface UserItem {
   id: string;
@@ -108,6 +94,8 @@ interface UserItem {
   level: number;
 }
 
+const route = useRoute()
+const userId = route.params.userId as string
 const followList = ref<UserItem[]>([]);
 
 const loading = ref(false);
@@ -133,7 +121,7 @@ const loadFollowingList = async () => {
 
   try {
 
-    const res = await listMyFollowing(cursor.value, offset.value,)
+    const res = await listUserFollowing(cursor.value, offset.value, userId)
 
     const data = res.data?.data;
 
@@ -163,48 +151,16 @@ const loadFollowingList = async () => {
   }
 };
 
-/**
- * 取消关注
- */
-const handleUnfollow = async (item: UserItem) => {
-
-  try {
-
-    await ElMessageBox.confirm(
-        `确定取消关注 ${item.username} 吗？`,
-        "提示",
-        {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning"
-        }
-    );
-
-    const res = await unfollowUser(item.id);
-
-    if (res.data.code !== 200) {
-      ElMessage.error(res.data.msg || "已取消关注");
-      return
-    }
-
-    followList.value = followList.value.filter(
-        user => user.id !== item.id
-    );
-    ElMessage.success(res.data.msg || "已取消关注");
-  } catch (e: any) {
-
-    if (e !== "cancel") {
-      ElMessage.error("取消关注失败");
-    }
-  }
-};
 
 /**
  * 打开用户主页
  */
 const openUserHome = (id: string) => {
 
-  window.open(`/user/home/${id}`, "_blank");
+  if (id != localStorage.getItem("userId")) {
+    window.open(`/user/home/${id}`, "_blank");
+  }
+  window.open(`/user/`, "_blank");
 };
 
 /**
@@ -227,7 +183,7 @@ const handleScroll = () => {
 };
 
 onMounted(() => {
-  document.title = '我的关注'
+  document.title = '用户关注'
   loadFollowingList();
 });
 </script>
@@ -357,22 +313,6 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* 按钮 */
-.follow-btn {
-  min-width: 100px;
-  height: 40px;
-
-  border-radius: 999px;
-
-  font-weight: 600;
-
-  transition: all 0.25s ease;
-}
-
-.follow-btn:hover {
-  transform: scale(1.04);
 }
 
 /* 加载 */

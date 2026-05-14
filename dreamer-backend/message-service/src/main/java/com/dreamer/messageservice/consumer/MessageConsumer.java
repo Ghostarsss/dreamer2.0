@@ -47,7 +47,7 @@ public class MessageConsumer {
         //使用 redis 防止重复关注推送信息
         String lock = FOLLOWING_MESSAGE_KEY + followingRabbitDto.getFollowedId() + "_" + followingRabbitDto.getFansId();
         Boolean isSendFollowingMessage = redisTemplate.opsForValue().setIfAbsent(lock, "", 7, TimeUnit.DAYS);
-
+        System.out.println(isSendFollowingMessage);
         if (Boolean.TRUE.equals(isSendFollowingMessage)) {
             messageService.followingMessage(followingRabbitDto);
         }

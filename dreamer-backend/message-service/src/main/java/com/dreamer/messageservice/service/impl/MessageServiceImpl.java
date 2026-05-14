@@ -148,6 +148,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         MessageTemplate messageTemplate = new MessageTemplate();
         messageTemplate.setContent("「" + followingRabbitDto.getFansUsername() + "」关注了你");
         messageTemplate.setType(MessageConstant.FOLLOW_MESSAGE_TYPE);
+        messageTemplate.setSendId(followingRabbitDto.getFansId());
         messageTemplate.setCreateTime(now);
         save(messageTemplate);
 

@@ -4,7 +4,6 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -86,24 +85,6 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
                 return SaResult.error(SystemMessage.OPERATION_FREQUENT);
             }
 
-            //查询该用户是否存在未到期信件
-            boolean exists = lambdaQuery().eq(FutureLetter::getUserId, userId)
-                    .gt(FutureLetter::getOpenTime, LocalDate.now())
-                    .eq(FutureLetter::getIsOpen, LETTER_IS_NOT_OPENED)
-                    .exists();
-            if (exists) {
-                return SaResult.error(SystemMessage.SYSTEM_ERROR);
-            }
-
-            //seata 做事务（由于 mac 和 docker 网络问题，尝试 1 天后docker 部署失败）
-            //若上传图片，则耗费 50 粒「质子」（用户等级必须达到 20 级）
-            if (!StrUtil.isEmpty(futureLetterDto.getImg())) {
-                SaResult uploadImagesWithProtonCost = userFeignClient.uploadImagesWithProtonCost(userId);
-                if (uploadImagesWithProtonCost.getCode() == 500) {
-                    return SaResult.error(LETTER_UPLOAD_IMAGES_ERROR);
-                }
-            }
-
             //封装信件并保存
             LocalDateTime now = LocalDateTime.now();
             FutureLetter futureLetter = BeanUtil.copyProperties(futureLetterDto, FutureLetter.class);
@@ -156,6 +137,12 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
         long userId = StpUtil.getLoginIdAsLong();
         log.info("用户 {} 尝试信封上传图片", userId);
 
+        //扣质子
+        SaResult saResult = userFeignClient.uploadImagesWithProtonCost(userId);
+        if (saResult.getCode() != 200) {
+            return SaResult.error(LETTER_UPLOAD_IMAGES_ERROR);
+        }
+
         try {
             String url = aliOSSUtil.addAli(img);
             return SaResult.ok(url);
@@ -166,6 +153,7 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
     }
 
     @Override
+    @Transactional
     public SaResult removeLetter(Long letterId) {
         long userId = StpUtil.getLoginIdAsLong();
 
@@ -180,7 +168,9 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
         }
 
         //阿里云删除图片
-        aliOSSUtil.removeAli(letter.getImg());
+        if (!letter.getImg().isEmpty()) {
+            aliOSSUtil.removeAli(letter.getImg());
+        }
 
         return SaResult.ok("删除成功");
     }
@@ -192,6 +182,7 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
 
         boolean exists = lambdaQuery().eq(FutureLetter::getUserId, userId)
                 .eq(FutureLetter::getIsOpen, LETTER_IS_NOT_OPENED)
+                .le(FutureLetter::getOpenTime,LocalDate.now())
                 .exists();
         if (exists) {
             return SaResult.ok(LETTER_UNOPENED_EXIST);
@@ -204,28 +195,26 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
 
         long userId = StpUtil.getLoginIdAsLong();
 
-        FutureLetter letter = lambdaQuery().eq(FutureLetter::getUserId, userId)
+        List<FutureLetter> letters = lambdaQuery().eq(FutureLetter::getUserId, userId)
                 .le(FutureLetter::getOpenTime, LocalDate.now())
                 .eq(FutureLetter::getIsOpen, LETTER_IS_NOT_OPENED)
-                .one();
+                .list();
 
         //修改信件为已读
-        lambdaUpdate().eq(FutureLetter::getId, letter.getId())
+        lambdaUpdate().eq(FutureLetter::getUserId, userId)
+                .le(FutureLetter::getOpenTime, LocalDate.now())
                 .set(FutureLetter::getIsOpen, LETTER_IS_OPENED)
                 .update();
 
-        return SaResult.data(letter);
+        return SaResult.data(letters);
     }
 
     @Override
     public SaResult listOpenedLetters(Integer page, Integer size) {
 
-        long userId = StpUtil.getLoginIdAsLong();
-
         //mybatisplus 实现分页查询业务
         LambdaQueryWrapper<FutureLetter> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FutureLetter::getIsOpen, LETTER_IS_OPENED)
-                .eq(FutureLetter::getUserId, userId)
                 .orderByDesc(FutureLetter::getOpenTime);
 
         Page<FutureLetter> futureLetterPage = new Page<>(page, size);

@@ -301,7 +301,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         String postHotIdKey = RedisKey.POST_HOT_ID_KEY;
 
         //加锁，防止高并发缓存多次
-        String lockKey = LockKey.POST_HOT_LOCK + StpUtil.getLoginIdAsString();
+        String lockKey = LockKey.POST_HOT_LOCK;
         RLock lock = redissonClient.getLock(lockKey);
 
         try {

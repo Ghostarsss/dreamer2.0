@@ -1,22 +1,22 @@
 <template>
-  <div class="following-page" ref="scrollRef" @scroll="handleScroll">
+  <div class="fans-page" ref="scrollRef" @scroll="handleScroll">
     <!-- 顶部 -->
     <div class="page-header">
-      <div class="title">关注</div>
-      <div class="sub-title">FOLLOWING LIST</div>
+      <div class="title">粉丝</div>
+      <div class="sub-title">FANS LIST</div>
     </div>
 
     <!-- 空状态 -->
     <el-empty
-        v-if="!loading && followList.length === 0"
-        description="你还没有关注任何用户"
+        v-if="!loading && fansList.length === 0"
+        description="这里空空的，像我的心一样"
     />
 
     <!-- 用户列表 -->
-    <div class="follow-list">
+    <div class="fans-list">
       <div
-          class="follow-item"
-          v-for="item in followList"
+          class="fans-item"
+          v-for="item in fansList"
           :key="item.id"
       >
         <!-- 左侧用户信息 -->
@@ -53,21 +53,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 取消关注 -->
-        <el-tooltip
-            content="点击取消关注"
-            placement="top"
-        >
-          <el-button
-              class="follow-btn"
-              type="primary"
-              plain
-              @click="handleUnfollow(item)"
-          >
-            已关注
-          </el-button>
-        </el-tooltip>
       </div>
     </div>
 
@@ -86,7 +71,7 @@
     <!-- 没有更多 -->
     <div
         class="no-more"
-        v-if="finished && followList.length > 0"
+        v-if="finished && fansList.length > 0"
     >
       已经到底啦～
     </div>
@@ -97,7 +82,8 @@
 import {ref, onMounted} from "vue";
 import {ElMessage, ElMessageBox} from "element-plus";
 import {Loading} from "@element-plus/icons-vue";
-import {listMyFollowing, listUserFollowing, unfollowUser} from "@/api/userApi.ts";
+import {listUserFans, removeFansUser} from "@/api/userApi.ts";
+import {useRoute} from "vue-router";
 
 interface UserItem {
   id: string;
@@ -108,7 +94,9 @@ interface UserItem {
   level: number;
 }
 
-const followList = ref<UserItem[]>([]);
+const route = useRoute()
+const userId = route.params.userId as string
+const fansList = ref<UserItem[]>([]);
 
 const loading = ref(false);
 
@@ -121,7 +109,7 @@ const offset = ref<number | null>(null);
 const scrollRef = ref<HTMLElement>();
 
 /**
- * 查询关注列表
+ * 查粉丝列表
  */
 const loadFollowingList = async () => {
 
@@ -133,7 +121,7 @@ const loadFollowingList = async () => {
 
   try {
 
-    const res = await listMyFollowing(cursor.value, offset.value,)
+    const res = await listUserFans(cursor.value, offset.value,userId)
 
     const data = res.data?.data;
 
@@ -144,7 +132,7 @@ const loadFollowingList = async () => {
       return;
     }
 
-    followList.value.push(...list);
+    fansList.value.push(...list);
 
     cursor.value = data.cursor;
 
@@ -154,7 +142,7 @@ const loadFollowingList = async () => {
 
     console.error(e);
 
-    ElMessage.error("加载关注列表失败");
+    ElMessage.error("加粉丝列表失败");
 
   } finally {
 
@@ -164,14 +152,14 @@ const loadFollowingList = async () => {
 };
 
 /**
- * 取消关注
+ * 移除粉丝
  */
-const handleUnfollow = async (item: UserItem) => {
+const handleRemoveFans = async (item: UserItem) => {
 
   try {
 
     await ElMessageBox.confirm(
-        `确定取消关注 ${item.username} 吗？`,
+        `确定移除粉丝 ${item.username} 吗？`,
         "提示",
         {
           confirmButtonText: "确定",
@@ -180,21 +168,21 @@ const handleUnfollow = async (item: UserItem) => {
         }
     );
 
-    const res = await unfollowUser(item.id);
+    const res = await removeFansUser(item.id);
 
     if (res.data.code !== 200) {
-      ElMessage.error(res.data.msg || "已取消关注");
+      ElMessage.error(res.data.msg);
       return
     }
 
-    followList.value = followList.value.filter(
+    fansList.value = fansList.value.filter(
         user => user.id !== item.id
     );
-    ElMessage.success(res.data.msg || "已取消关注");
+    ElMessage.success(res.data.msg);
   } catch (e: any) {
 
     if (e !== "cancel") {
-      ElMessage.error("取消关注失败");
+      ElMessage.error("移除粉丝失败");
     }
   }
 };
@@ -204,7 +192,10 @@ const handleUnfollow = async (item: UserItem) => {
  */
 const openUserHome = (id: string) => {
 
-  window.open(`/user/home/${id}`, "_blank");
+  if (id != localStorage.getItem("userId")) {
+    window.open(`/user/home/${id}`, "_blank");
+  }
+  window.open(`/user/`, "_blank");
 };
 
 /**
@@ -227,13 +218,13 @@ const handleScroll = () => {
 };
 
 onMounted(() => {
-  document.title = '我的关注'
+  document.title = '用户粉丝'
   loadFollowingList();
 });
 </script>
 
 <style scoped>
-.following-page {
+.fans-page {
   width: 100%;
   height: 100vh;
   overflow-y: auto;
@@ -264,14 +255,14 @@ onMounted(() => {
 }
 
 /* 列表 */
-.follow-list {
+.fans-list {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
 /* item */
-.follow-item {
+.fans-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -291,7 +282,7 @@ onMounted(() => {
   transition: all 0.25s ease;
 }
 
-.follow-item:hover {
+.fans-item:hover {
   transform: translateY(-3px);
 
   box-shadow: 0 14px 38px rgba(15, 23, 42, 0.1);
@@ -359,22 +350,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* 按钮 */
-.follow-btn {
-  min-width: 100px;
-  height: 40px;
-
-  border-radius: 999px;
-
-  font-weight: 600;
-
-  transition: all 0.25s ease;
-}
-
-.follow-btn:hover {
-  transform: scale(1.04);
-}
-
 /* 加载 */
 .loading-box {
   display: flex;
@@ -402,11 +377,11 @@ onMounted(() => {
 /* 移动端 */
 @media (max-width: 768px) {
 
-  .following-page {
+  .fans-page {
     padding: 20px;
   }
 
-  .follow-item {
+  .fans-item {
     padding: 16px;
   }
 
@@ -416,10 +391,6 @@ onMounted(() => {
 
   .username {
     font-size: 17px;
-  }
-
-  .follow-btn {
-    min-width: 88px;
   }
 }
 </style>

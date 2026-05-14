@@ -30,15 +30,20 @@
     </div>
     <!-- 介绍卡片 -->
     <section class="cards fade-in">
-      <h2 class="section-title">功能介绍</h2>
+      <h2 class="section-title">网站功能介绍</h2>
 
       <el-row :gutter="20" justify="center">
         <el-col :xs="24" :sm="12" :md="10">
           <el-card class="card">
             <h3>🌳 树洞功能</h3>
             <p>
-              你可以在这里匿名倾诉情绪，把不想说出口的想法写进树洞，
-              它会安静地倾听你的一切。
+              这里是专属你的情绪树洞，不用伪装、不必顾虑，所有没说出口的心事、无处安放的情绪，都可以放心写在这里，它会安静倾听、妥善珍藏，做你最忠实的倾听者。
+            </p>
+            <p>
+              无需登录即可浏览全站最新、最热内容，轻松邂逅他人的故事与心声；登录即可解锁完整社交体验，点赞、评论、投币互动，自由发布专属文字动态，还能关注心仪作者、实时查看TA的更新，一站式管理自己发布的所有内容。
+            </p>
+            <p>
+              这里没有陌生与隔阂，所有用户都是彼此的同行者，你可以把这里当成专属朋友圈，自在分享、真诚交流，在温柔的氛围里，遇见同频的人。
             </p>
           </el-card>
         </el-col>
@@ -46,10 +51,13 @@
         <el-col :xs="24" :sm="12" :md="10">
           <el-card class="card">
             <h3>📮 未来信箱</h3>
-            <p>
-              写一封信给未来的自己，设定时间后自动开启，
-              让时间替你保存期待与成长。
-            </p>
+            <p>写给未来的一封信，封存当下心情，预约时光回响。你可以随心寄信给自己，设定指定开启时间，让岁月替你珍藏期许，见证一路成长，如同专属时光胶囊。</p>
+
+            <p>支持信件搭配专属配图，自由选择公开或私密模式：<br>
+              · 公开信件：永久留存，所有用户均可浏览查阅，也可手动删除；<br>
+              · 私密信件：仅本人可见，一旦查看便自动销毁，守护专属心事。</p>
+
+            <p>信件到期后会准时提醒，搭配精致仪式感开信体验，治愈走心、情绪满满，用温柔仪式，遇见时光里更好的自己。</p>
           </el-card>
         </el-col>
       </el-row>
@@ -60,11 +68,21 @@
       <h2 class="section-title">Dreamer2.0 升级内容</h2>
 
       <el-card class="upgrade-card">
+        <div style="font-weight: bold">功能升级内容：</div>
         <ul>
           <li>🚀 微服务架构重构，系统更稳定</li>
           <li>⚡ 性能优化，响应速度更快</li>
-          <li>🎨 UI 全面升级，更现代化设计</li>
-          <li>🔐 权限系统增强，更安全可靠</li>
+          <li>🎨 UI 全面升级，更简约化设计</li>
+          <li>🔐 用户系统增强，采用密码加密技术，更安全可靠</li>
+        </ul>
+
+        <div style="font-weight: bold">系统升级内容：</div>
+        <ul>
+          <li>🚀 微服务架构重构，系统更稳定</li>
+          <li>⚡ 性能优化，响应速度更快</li>
+          <li>🎨 UI 全面升级，更简约化设计</li>
+          <li>🔐 用户系统增强，采用密码加密技术，更安全可靠</li>
+          <li>💻 使用的新技术栈：Redis、SpringCloud、mybatis-plus、RabbitMQ、OpenFeign、Nacos、Sentinel、Seata、Sa-token</li>
         </ul>
       </el-card>
     </section>
@@ -195,7 +213,7 @@ const isSign = async () => {
 }
 
 .card {
-  height: 180px;
+  height: 380px;
   transition: 0.3s;
 }
 
@@ -290,7 +308,48 @@ const isSign = async () => {
   transition: transform 0.3s ease;
 }
 
-.icon:hover {
-  transform: scale(1.3) rotate(10deg);
+@media screen and (max-width: 768px) {
+
+  .page {
+    padding: 20px 12px;
+  }
+
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 30px auto 40px auto;
+    gap: 20px;
+  }
+
+  .title {
+    font-size: 34px;
+    line-height: 1.3;
+  }
+
+  .sub {
+    margin-top: 20px;
+    font-size: 14px;
+  }
+
+  .top-card {
+    display: none;
+  }
+
+  .icon-row {
+    font-size: 42px;
+    margin: 10px auto 20px auto;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .card {
+    height: auto;
+  }
+
+  .upgrade {
+    margin: 60px auto 20px;
+  }
 }
 </style>

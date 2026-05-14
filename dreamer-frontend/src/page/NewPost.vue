@@ -171,7 +171,6 @@
 
 <script setup lang="ts">
 import {ref, onMounted, onUnmounted} from 'vue'
-import axios from "axios";
 import {Star, ChatDotRound, Pointer, Loading} from '@element-plus/icons-vue'
 import {ElMessage} from "element-plus";
 import {addPost, like, listNewPosts, protonPostByPostId} from "@/api/postApi.ts";
@@ -208,6 +207,12 @@ const handleMouseMove = (e: MouseEvent, item?: PostItem) => {
 
 // 跳转用户主页 新标签页
 const goToUserHome = (userId: string) => {
+  if (!localStorage.getItem("satoken")) {
+    //如果未登录
+    ElMessage.warning("登录后可查看该用户信息");
+    return;
+  }
+
   if (!userId) return
 
   let userUrl = `/user/home/${userId}`;
@@ -392,9 +397,13 @@ const handleScroll = () => {
 
 /* 全局滚轮控制 */
 const handleGlobalWheel = (e: WheelEvent) => {
+  // 手机端不接管全局滚动
+  if (window.innerWidth <= 768) return
+
   const target = e.target as HTMLElement
   if (target.closest('.message-scroll')) return
   if (!scrollContainer.value) return
+
   e.preventDefault()
   scrollContainer.value.scrollTop += e.deltaY
 }
@@ -613,15 +622,121 @@ onUnmounted(() => {
 }
 
 /* 自定义跟随鼠标的悬浮提示气泡 */
-.user-tip-pop {
-  position: fixed;
-  background: #303133;
-  color: #fff;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 9999;
+
+@media screen and (max-width: 768px) {
+
+  .forum-page {
+    padding: 14px 12px 24px;
+  }
+
+  .publish-card {
+    padding: 14px;
+    border-radius: 16px;
+    margin-bottom: 14px;
+    margin-top: 25px;
+  }
+
+  .post-card {
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+
+  .post-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .user-hover-wrap :deep(.el-avatar) {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .user-info {
+    margin-left: 10px;
+  }
+
+  .username {
+    font-size: 14px;
+  }
+
+  .level {
+    font-size: 12px;
+  }
+
+  .time {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .post-content {
+    margin-top: 14px;
+  }
+
+  .content-text {
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
+  .expand-btn {
+    font-size: 13px;
+  }
+
+  .post-actions {
+    margin-top: 16px;
+    padding-top: 14px;
+    gap: 8px;
+  }
+
+  .action-item {
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .mock-comment {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .support-dialog-content {
+    gap: 14px;
+  }
+
+  .support-tip {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .user-tip-pop {
+    display: none;
+  }
+
+  :deep(.el-dialog) {
+    width: calc(100vw - 24px) !important;
+    border-radius: 16px;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.el-input__wrapper) {
+    border-radius: 12px;
+  }
+
+  .publish-footer :deep(.el-button) {
+    width: 100%;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    gap: 10px;
+  }
+
+  .dialog-footer :deep(.el-button) {
+    flex: 1;
+  }
 }
 </style>

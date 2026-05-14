@@ -147,8 +147,8 @@ public class VPServiceImpl extends ServiceImpl<VPMapper, User> implements IVPSer
         //用户等级达到 20 级，扣减「原子」
         boolean update = lambdaUpdate().eq(User::getId, userId)
                 .ge(User::getProton, 50)
-                .ge(User::getExp, 36100)
-                .setSql("proton = proton - 100")
+                .ge(User::getExp, 8100)
+                .setSql("proton = proton - 10")
                 .update();
         if (!update) {
             return SaResult.error();

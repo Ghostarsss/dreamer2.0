@@ -175,6 +175,12 @@ const handleMouseMove = (e: MouseEvent, item?: PostItem) => {
 
 // 跳转用户主页 新标签页
 const goToUserHome = (userId: string) => {
+  if (!localStorage.getItem("satoken")) {
+    //如果未登录
+    ElMessage.warning("登录后可查看该用户信息");
+    return;
+  }
+
   if (!userId) return
 
   let userUrl = `/user/home/${userId}`;
@@ -352,6 +358,7 @@ const handleScroll = () => {
 
 /* 全局滚轮控制 */
 const handleGlobalWheel = (e: WheelEvent) => {
+  if (window.innerWidth <= 768) return
   const target = e.target as HTMLElement
   if (target.closest('.message-scroll')) return
   if (!scrollContainer.value) return
@@ -596,5 +603,74 @@ onUnmounted(() => {
   border: 1px solid #eee;
   margin-bottom: 20px;
   text-align: center;
+}
+
+@media screen and (max-width: 768px) {
+
+  .forum-page {
+    height: auto;
+    min-height: 100vh;
+    padding: 16px 12px;
+  }
+
+  .hot-tip {
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    margin-top: 30px;
+    border-radius: 10px;
+  }
+
+  .post-card {
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+
+  .post-header {
+    align-items: flex-start;
+  }
+
+  .user-info {
+    margin-left: 10px;
+  }
+
+  .username {
+    font-size: 14px;
+  }
+
+  .level {
+    font-size: 12px;
+  }
+
+  .time {
+    font-size: 12px;
+  }
+
+  .content-text {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .post-actions {
+    gap: 10px;
+  }
+
+  .action-item {
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .support-dialog-content {
+    gap: 14px;
+  }
+
+  .support-tip {
+    font-size: 13px;
+  }
+
+  .user-tip-pop {
+    display: none;
+  }
 }
 </style>

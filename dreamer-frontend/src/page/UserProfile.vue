@@ -345,7 +345,15 @@ onMounted(() => {
   padding: 40px;
   box-sizing: border-box;
   background: #f5f7fa;
-  overflow: hidden;
+  overflow-y: auto;
+
+  /* 隐藏滚动条（兼容各浏览器） */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.profile-container::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
 }
 
 .page-header {

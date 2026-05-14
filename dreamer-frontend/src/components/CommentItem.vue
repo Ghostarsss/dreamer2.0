@@ -67,7 +67,15 @@ const handleMouseMove = (e: MouseEvent) => {
 
 // 跳转到用户主页
 const goToUserHome = (userId: string | number) => {
-  if (!userId) return
+  if (!localStorage.getItem("satoken")) {
+    //如果未登录
+    ElMessage.warning("登录后可查看该用户信息");
+    return;
+  }
+
+  if (!userId) {
+  }
+  return;
   let userUrl = `/user/home/${userId}`;
   if (userId === localStorage.getItem("userId")) {
     userUrl = `/user/`;
@@ -444,6 +452,7 @@ const formatTime = (time: string) => {
 .user-hover-wrap {
   cursor: pointer;
 }
+
 .user-hover-wrap:hover {
   opacity: 0.85;
 }

@@ -109,9 +109,7 @@ import {
 import {me} from "@/api/userApi.ts";
 import {useRoute, useRouter} from "vue-router";
 
-const route = useRoute()
 const router = useRouter()
-const defaultIndex = 'new'
 
 /* 菜单 */
 const activeMenu = computed(() => {
@@ -364,5 +362,98 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 700;
   color: #409eff;
+}
+
+@media screen and (max-width: 768px) {
+
+  .forum-layout {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    flex-direction: column;
+    overflow: visible !important;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    height: auto;
+    padding: 12px;
+    z-index: 20;
+    background: #f5f7fb;
+  }
+
+  .sidebar-card {
+    width: 100%;
+    border-radius: 16px;
+    padding: 10px;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  .menu {
+    width: max-content;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+  }
+
+  .menu :deep(.el-menu) {
+    display: flex;
+    flex-wrap: nowrap;
+    width: max-content;
+    min-width: max-content;
+    border-right: none;
+  }
+
+  .menu :deep(.el-menu-item) {
+    height: 40px;
+    margin: 0 4px 0 0;
+    padding: 0 12px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  .menu :deep(.el-menu-item span) {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .content {
+    position: relative;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 12px;
+    overflow: visible !important;
+  }
+
+  .content-card {
+    height: auto;
+    min-height: calc(100vh - 140px);
+    padding: 0;
+    border-radius: 16px;
+    overflow: visible !important;
+  }
+
+  .content-card :deep(*) {
+    overflow: visible;
+  }
+
+  .right-panel {
+    display: none;
+  }
 }
 </style>

@@ -82,7 +82,7 @@ public class FollowingController {
     @GetMapping("/{userId}/fans")
     public SaResult listFansByUserId(@PathVariable Long userId, @RequestParam(required = false) Long cursor
             , @RequestParam(required = false) Integer offset) {
-        return followingService.listFansByUserId(userId,cursor,offset);
+        return followingService.listFansByUserId(userId, cursor, offset);
     }
 
     /**

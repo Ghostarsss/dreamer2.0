@@ -67,3 +67,19 @@ export const buyEXP = (proton: any) => {
         params: {proton}
     })
 };
+
+export const listUserFollowing = (cursor: any, offset: any,userId: any) => {
+    return request({
+        url: `/follows/${userId}/following`,
+        method: "GET",
+        params: {cursor, offset}
+    })
+};
+
+export const listUserFans = (cursor: any, offset: any,userId: any) => {
+    return request({
+        url: `/follows/${userId}/fans`,
+        method: "GET",
+        params: {cursor, offset}
+    })
+};
