@@ -17,7 +17,7 @@ public class MessageTemplate {
      * 消息模板ID
      */
     @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+    private String id;
 
     /**
      * 消息类型：
@@ -28,7 +28,7 @@ public class MessageTemplate {
     /**
      * 发送者ID
      */
-    private Long sendId;
+    private String sendId;
 
     /**
      * 消息内容

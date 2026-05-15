@@ -4,11 +4,13 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.entity.dto.MessageDto;
 import com.dreamer.common.message.SystemMessage;
+import com.dreamer.common.message.UserMessage;
 import com.dreamer.letterservice.constant.LetterConstant;
 import com.dreamer.letterservice.entity.dto.FutureLetterDto;
 import com.dreamer.letterservice.entity.pojo.FutureLetter;
@@ -88,6 +90,7 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
             //封装信件并保存
             LocalDateTime now = LocalDateTime.now();
             FutureLetter futureLetter = BeanUtil.copyProperties(futureLetterDto, FutureLetter.class);
+            futureLetter.setContent(StrUtil.trim(futureLetterDto.getContent()));
             futureLetter.setUserId(userId);
             futureLetter.setCreateTime(now);
             boolean save = save(futureLetter);
@@ -164,7 +167,15 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
                 .eq(FutureLetter::getId, letterId)
                 .remove();
         if (!remove) {
-            return SaResult.error(SystemMessage.SYSTEM_ERROR);
+            //判断是否有管理员权限
+            if (!StpUtil.getSession().getString("role").equals("1")) {
+                //管理员
+                lambdaUpdate()
+                        .eq(FutureLetter::getId, letterId)
+                        .remove();
+            } else {
+                return SaResult.error(SystemMessage.NO_PERMISSION);
+            }
         }
 
         //阿里云删除图片
@@ -182,7 +193,7 @@ public class LetterServiceImpl extends ServiceImpl<LetterMapper, FutureLetter> i
 
         boolean exists = lambdaQuery().eq(FutureLetter::getUserId, userId)
                 .eq(FutureLetter::getIsOpen, LETTER_IS_NOT_OPENED)
-                .le(FutureLetter::getOpenTime,LocalDate.now())
+                .le(FutureLetter::getOpenTime, LocalDate.now())
                 .exists();
         if (exists) {
             return SaResult.ok(LETTER_UNOPENED_EXIST);

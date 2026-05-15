@@ -56,4 +56,10 @@ public class StatisticsServiceImpl extends ServiceImpl<StatisticsMapper, Statist
 
         return SaResult.data(statistics);
     }
+
+    @Override
+    public String getView() {
+
+        return redisTemplate.opsForValue().get("statistics:view");
+    }
 }

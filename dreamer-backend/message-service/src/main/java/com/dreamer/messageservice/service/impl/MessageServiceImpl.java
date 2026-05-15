@@ -63,7 +63,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
             return;
         }
         UserMessage userMessage = BeanUtil.copyProperties(messageDto, UserMessage.class);
-        userMessage.setMessageId(messageTemplate.getId());
+        userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
         userMessage.setCreateTime(now);
 
         //反馈服务的接收者是全体管理员
@@ -148,7 +148,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         MessageTemplate messageTemplate = new MessageTemplate();
         messageTemplate.setContent("「" + followingRabbitDto.getFansUsername() + "」关注了你");
         messageTemplate.setType(MessageConstant.FOLLOW_MESSAGE_TYPE);
-        messageTemplate.setSendId(followingRabbitDto.getFansId());
+        messageTemplate.setSendId(String.valueOf(followingRabbitDto.getFansId()));
         messageTemplate.setCreateTime(now);
         save(messageTemplate);
 
@@ -156,7 +156,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         UserMessage userMessage = new UserMessage();
         userMessage.setCreateTime(now);
         userMessage.setUserId(followingRabbitDto.getFollowedId());
-        userMessage.setMessageId(messageTemplate.getId());
+        userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
         userMessageMapper.insert(userMessage);
     }
 
@@ -167,7 +167,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         LocalDateTime now = LocalDateTime.now();
         messageTemplate.setCreateTime(now);
         messageTemplate.setType(MessageConstant.LIKE_MESSAGE_TYPE);
-        messageTemplate.setSendId(messageDto.getSendId());
+        messageTemplate.setSendId(String.valueOf(messageDto.getSendId()));
 
         UserMessage userMessage = new UserMessage();
         userMessage.setCreateTime(now);
@@ -187,7 +187,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
             //插入用户消息
             userMessage.setUserId(messageDto.getUserId());
-            userMessage.setMessageId(messageTemplate.getId());
+            userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
             userMessageMapper.insert(userMessage);
         } else {
             //评论点赞
@@ -198,7 +198,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
             //插入用户消息
             userMessage.setUserId(messageDto.getUserId());
-            userMessage.setMessageId(messageTemplate.getId());
+            userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
             userMessageMapper.insert(userMessage);
         }
     }
@@ -219,7 +219,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
         //封装消息表
         MessageTemplate messageTemplate = new MessageTemplate();
-        messageTemplate.setSendId(sendId);
+        messageTemplate.setSendId(String.valueOf(sendId));
         messageTemplate.setType(MessageConstant.COMMENT_MESSAGE_TYPE);
         messageTemplate.setCreateTime(now);
 
@@ -233,7 +233,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
             //一级评论,只用给文章作者发送通知
             messageTemplate.setContent("「" + userVo.getUsername() + "」评论了您的文章:「" + messageDto.getContent() + "」");
             save(messageTemplate);
-            userMessage.setMessageId(messageTemplate.getId());
+            userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
             userMessageMapper.insert(userMessage);
 
         } else {
@@ -242,7 +242,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
             messageTemplate.setContent("「" + userVo.getUsername() + "」评论了您:「" + messageDto.getContent() + "」");
             save(messageTemplate);
-            userMessage.setMessageId(messageTemplate.getId());
+            userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
             userMessageMapper.insert(userMessage);
 
 
@@ -250,7 +250,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
             //如果是自己的文章下就不发
             if (messageDto.getPostUserId() == messageDto.getUserId()) {
                 MessageTemplate parentMessageTemplate = new MessageTemplate();
-                parentMessageTemplate.setSendId(sendId);
+                parentMessageTemplate.setSendId(String.valueOf(sendId));
                 parentMessageTemplate.setType(MessageConstant.COMMENT_MESSAGE_TYPE);
                 parentMessageTemplate.setCreateTime(now);
 
@@ -260,7 +260,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
                 parentMessageTemplate.setContent("「" + userVo.getUsername() + "」在您的文章下评论了他人" + messageDto.getContent());
                 save(parentMessageTemplate);
-                parentUserMessage.setMessageId(parentMessageTemplate.getId());
+                parentUserMessage.setMessageId(Long.valueOf(parentMessageTemplate.getId()));
                 userMessageMapper.insert(parentUserMessage);
             }
         }
@@ -275,14 +275,14 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
         MessageTemplate messageTemplate = new MessageTemplate();
         messageTemplate.setCreateTime(now);
         messageTemplate.setType(ADMIN_NOTIFY_MESSAGE_TYPE);
-        messageTemplate.setSendId(messageDto.getUserId());
+        messageTemplate.setSendId(String.valueOf(messageDto.getUserId()));
         messageTemplate.setContent(messageDto.getContent());
 
         save(messageTemplate);
 
         UserMessage userMessage = new UserMessage();
         userMessage.setCreateTime(now);
-        userMessage.setMessageId(messageTemplate.getId());
+        userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
         userMessage.setUserId(messageDto.getSendId());
 
         boolean saveUserMessage = userMessageService.save(userMessage);
@@ -347,7 +347,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageTemplateMapper, Messa
 
         UserMessage userMessage = new UserMessage();
         userMessage.setCreateTime(now);
-        userMessage.setMessageId(messageTemplate.getId());
+        userMessage.setMessageId(Long.valueOf(messageTemplate.getId()));
         userMessage.setUserId(messageDto.getUserId());
 
         int saveUserMessage = userMessageMapper.insert(userMessage);

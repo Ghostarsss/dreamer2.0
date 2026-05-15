@@ -74,8 +74,8 @@ const goToUserHome = (userId: string | number) => {
   }
 
   if (!userId) {
+    return;
   }
-  return;
   let userUrl = `/user/home/${userId}`;
   if (userId === localStorage.getItem("userId")) {
     userUrl = `/user/`;

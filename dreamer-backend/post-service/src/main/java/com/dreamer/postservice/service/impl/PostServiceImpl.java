@@ -5,6 +5,7 @@ import cn.dev33.satoken.util.SaResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dreamer.common.constant.MessageConstant;
@@ -17,6 +18,7 @@ import com.dreamer.common.message.SystemMessage;
 import com.dreamer.common.message.UserMessage;
 import com.dreamer.postservice.constant.LikesConstant;
 import com.dreamer.common.constant.PostConstant;
+import com.dreamer.postservice.entity.pojo.Comment;
 import com.dreamer.postservice.entity.pojo.Post;
 import com.dreamer.common.entity.vo.PostVo;
 import com.dreamer.postservice.feign.UserFeignClient;
@@ -120,10 +122,19 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         //判断文章是否属于该用户(是否是管理员)
         long userId = StpUtil.getLoginIdAsLong();
         boolean exists = lambdaQuery().eq(Post::getId, postId)
+                .exists();
+        if (!exists) {
+            //文章不存在
+            return SaResult.error(PostMessage.POST_NOT_EXIST);
+        }
+
+        //判断当前用户是否有权限删除
+        boolean isAuthor = lambdaQuery().eq(Post::getId, postId)
                 .eq(Post::getUserId, userId)
                 .exists();
-        if (!exists && StpUtil.getSession().getInt("role") == 1) {
-            return SaResult.error(PostMessage.POST_NOT_EXIST);
+        if (!(isAuthor || !StpUtil.getSession().getString("role").equals("1"))) {
+            //既不是作者也不是管理员
+            return SaResult.error(PostMessage.POST_DELETE_AUTH_ERROR);
         }
 
         //逻辑删除文章
@@ -194,7 +205,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         //更新文章（更新后需审核）
         boolean update = lambdaUpdate().eq(Post::getUserId, userId)
                 .eq(Post::getId, postId)
-                .set(Post::getContent, content)
+                .set(Post::getContent, StrUtil.trim(content))
                 .set(Post::getStatus, PostConstant.POST_STATUS_PENDING_REVIEW)
                 .setSql("edit_count = edit_count + 1")
                 .update();
@@ -367,7 +378,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                 redisTemplate.opsForZSet().add(postHotIdKey, typedTuples);
                 //设置过期时间
                 redisTemplate.expire(postHotIdKey, 1, TimeUnit.DAYS);
-                return SaResult.data(postVos);
 
             }
         } catch (Exception e) {
@@ -557,10 +567,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         }
 
         boolean rm = removeBatchByIds(postIds);
+
         if (!rm) {
             throw new RuntimeException("删除用户文章失败");
         }
 
+        //删除文章相关评论
         for (Long postId : postIds) {
             commentService.delCommentsByPostId(postId);
             likesService.delLikesByPostId(postId);
@@ -579,6 +591,19 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         List<Post> posts = postPage.getRecords();
         List<String> postUserIds = posts.stream()
                 .map(post -> post.getUserId().toString()).toList();
+
+        //封装 page
+        Page<PostVo> postVoPage = new Page<>();
+        postVoPage.setPages(postPage.getPages());
+        postVoPage.setCurrent(postPage.getCurrent());
+        postVoPage.setTotal(postPage.getTotal());
+        postVoPage.setSize(postPage.getSize());
+
+        //若没有审核文章
+        if (postUserIds.isEmpty()) {
+            postVoPage.setRecords(Collections.emptyList());
+            return postVoPage;
+        }
 
         //远程批量查询文章对应用户，用于 vo 拼接
         SaResult saResult = userFeignClient.batchQueryUserByUserId(postUserIds);
@@ -604,12 +629,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         }
 
         //封装 page
-        Page<PostVo> postVoPage = new Page<>();
-        postVoPage.setPages(postPage.getPages());
-        postVoPage.setCurrent(postPage.getCurrent());
         postVoPage.setRecords(postVos);
-        postVoPage.setTotal(postPage.getTotal());
-        postVoPage.setSize(postPage.getSize());
 
         return postVoPage;
     }
@@ -632,6 +652,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     @Override
     public Long countPosts() {
 
-        return count();
+        //排除审核中和已驳回的文章
+
+        return count(new LambdaQueryWrapper<Post>().eq(Post::getStatus, POST_STATUS_PASS_REVIEW));
     }
 }

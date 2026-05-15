@@ -16,7 +16,7 @@ public class FutureLetter {
      * 信件ID
      */
     @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+    private String id;
 
     /**
      * 信件所属用户ID，一个用户只能写一封

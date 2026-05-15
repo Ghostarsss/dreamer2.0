@@ -16,6 +16,7 @@ const excludePath = [
     "/posts/hot",
     "/comments/**",
     "/letters/opened",
+    "/system/view",
 ];
 
 // 请求拦截器

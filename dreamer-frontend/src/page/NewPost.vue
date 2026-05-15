@@ -99,6 +99,18 @@
           </el-icon>
           <span>点赞 {{ item.likeCount }}</span>
         </div>
+
+        <!-- 删除 -->
+        <div
+            v-if="role == '2' || role == '3'"
+            class="action-item delete-item"
+            @click="deletePost(item)"
+        >
+          <el-icon>
+            <Delete/>
+          </el-icon>
+          <span>删除</span>
+        </div>
       </div>
 
       <!-- 评论区域 -->
@@ -171,9 +183,9 @@
 
 <script setup lang="ts">
 import {ref, onMounted, onUnmounted} from 'vue'
-import {Star, ChatDotRound, Pointer, Loading} from '@element-plus/icons-vue'
-import {ElMessage} from "element-plus";
-import {addPost, like, listNewPosts, protonPostByPostId} from "@/api/postApi.ts";
+import {Star, ChatDotRound, Pointer, Loading, Delete} from '@element-plus/icons-vue'
+import {ElMessage, ElMessageBox} from "element-plus";
+import {addPost, deletePostByPostId, like, listNewPosts, protonPostByPostId} from "@/api/postApi.ts";
 import Comment from "@/components/Comment.vue";
 
 interface PostItem {
@@ -192,6 +204,8 @@ interface PostItem {
   showComment?: boolean
   likeAnimating?: boolean
 }
+
+const role = localStorage.getItem("role")
 
 // 悬浮提示相关
 const showUserTip = ref(false)
@@ -361,6 +375,41 @@ const likePost = async (item: PostItem) => {
     }
     console.error(e)
     ElMessage.error("操作失败")
+  }
+}
+
+/* 删除文章 */
+const deletePost = async (item: PostItem) => {
+
+  try {
+
+    await ElMessageBox.confirm(
+        '确定删除这篇文章吗？',
+        '删除提示',
+        {
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+    )
+
+    const res = await deletePostByPostId(item.id)
+
+    if (res.data.code !== 200) {
+      ElMessage.error(res.data.msg)
+      return
+    }
+
+    postList.value = postList.value.filter(post => post.id !== item.id)
+
+    ElMessage.success(res.data.msg || "删除成功")
+
+  } catch (e: any) {
+
+    if (e !== 'cancel') {
+      console.error(e)
+      ElMessage.error("删除失败")
+    }
   }
 }
 
@@ -538,6 +587,10 @@ onUnmounted(() => {
 
 .action-item:hover {
   color: #409eff;
+}
+
+.delete-item:hover {
+  color: #f56c6c;
 }
 
 .action-item-color {

@@ -52,7 +52,6 @@ import {ref} from 'vue'
 import {ElMessage} from 'element-plus'
 import {useRouter} from 'vue-router'
 import {ArrowLeft} from '@element-plus/icons-vue'
-import axios from 'axios'
 import type {FormInstance, FormRules} from 'element-plus'
 import {login} from "@/api/authApi.ts";
 

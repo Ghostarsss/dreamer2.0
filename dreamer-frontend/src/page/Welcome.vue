@@ -8,7 +8,7 @@
       </div>
 
       <div class="top-card" v-if=isLogin>
-        <div class="slogan-title">每日 slogan</div>
+        <div class="slogan-title">tip</div>
         <div class="slogan-text">{{ slogan }}</div>
 
         <el-button
@@ -50,14 +50,16 @@
 
         <el-col :xs="24" :sm="12" :md="10">
           <el-card class="card">
-            <h3>📮 未来信箱</h3>
-            <p>写给未来的一封信，封存当下心情，预约时光回响。你可以随心寄信给自己，设定指定开启时间，让岁月替你珍藏期许，见证一路成长，如同专属时光胶囊。</p>
+            <h3>📮 时光信箱</h3>
+            <p>
+              写给未来的一封信，封存当下心情，预约时光回响。你可以随心寄信给自己，设定指定开启时间，让岁月替你珍藏期许，见证一路成长，如同专属时光胶囊。</p>
 
             <p>支持信件搭配专属配图，自由选择公开或私密模式：<br>
               · 公开信件：永久留存，所有用户均可浏览查阅，也可手动删除；<br>
               · 私密信件：仅本人可见，一旦查看便自动销毁，守护专属心事。</p>
 
-            <p>信件到期后会准时提醒，搭配精致仪式感开信体验，治愈走心、情绪满满，用温柔仪式，遇见时光里更好的自己。</p>
+            <p>
+              待到约定开信日期，系统会第一时间推送提醒通知，搭配充满科幻感的专属开信仪式，氛围感与情绪价值十足。跨越时光与自己重逢，回望当下心境，感受成长变化，在漫长岁月里收获独一份的温柔与感动。</p>
           </el-card>
         </el-col>
       </el-row>
@@ -70,22 +72,27 @@
       <el-card class="upgrade-card">
         <div style="font-weight: bold">功能升级内容：</div>
         <ul>
-          <li>🚀 微服务架构重构，系统更稳定</li>
-          <li>⚡ 性能优化，响应速度更快</li>
-          <li>🎨 UI 全面升级，更简约化设计</li>
-          <li>🔐 用户系统增强，采用密码加密技术，更安全可靠</li>
+          <li>用户模块：「等级」和「质子」系统、签到、关注、邮箱注册等</li>
+          <li>树洞模块：新增二级评论、文章分类、文章投币等</li>
+          <li>时光信箱模块：新增公开信件、支持信件附带图片等</li>
+          <li>更多新功能等待你探索......</li>
         </ul>
 
         <div style="font-weight: bold">系统升级内容：</div>
         <ul>
           <li>🚀 微服务架构重构，系统更稳定</li>
           <li>⚡ 性能优化，响应速度更快</li>
-          <li>🎨 UI 全面升级，更简约化设计</li>
+          <li>🎨 UI 全面重构升级，更简约化设计，适配了移动端</li>
           <li>🔐 用户系统增强，采用密码加密技术，更安全可靠</li>
           <li>💻 使用的新技术栈：Redis、SpringCloud、mybatis-plus、RabbitMQ、OpenFeign、Nacos、Sentinel、Seata、Sa-token</li>
         </ul>
       </el-card>
     </section>
+
+    <!-- 网站总浏览量（左下角固定） -->
+    <div class="view-count-fixed">
+      网站浏览量：{{ totalView }} 次
+    </div>
   </div>
 </template>
 
@@ -93,6 +100,7 @@
 import {ref, onMounted} from 'vue'
 import {checkSign, sign} from "@/api/userApi.ts";
 import {ElMessage} from "element-plus";
+import {getView} from "@/api/adminApi.ts";
 
 
 // slogan
@@ -101,7 +109,7 @@ const slogans = [
   '宇宙在等你发光 🌌',
   '每一步都在靠近未来 🚀',
   '你比想象中更强大 💡',
-  '梦境正在生成中...'
+  '发布文章、评论以提升等级'
 ]
 
 const subSlogans = [
@@ -130,13 +138,16 @@ const isLogin = ref(false)
 
 //是否签到
 const isSigned = ref(false)
+const totalView = ref('0')
 
 onMounted(() => {
+  getTotalView()
   //判断是否登录
   if (localStorage.getItem("satoken")) {
     isLogin.value = true
     //判断签到状态
     isSign()
+    getTotalView()
   }
   const randomIndex = Math.floor(Math.random() * slogans.length)
   slogan.value = slogans[randomIndex] ?? '今天也要保持好奇心 ✨'
@@ -166,6 +177,16 @@ const isSign = async () => {
 
   const res = await checkSign();
   isSigned.value = res.data.msg === "1";
+}
+
+// 获取网站总浏览量
+const getTotalView = async () => {
+  try {
+    const res = await getView();
+    totalView.value = res.data
+  } catch (e) {
+    totalView.value = '0'
+  }
 }
 </script>
 
@@ -208,12 +229,12 @@ const isSign = async () => {
 }
 
 .cards {
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
 .card {
-  height: 380px;
+  height: 360px;
   transition: 0.3s;
 }
 
@@ -351,5 +372,23 @@ const isSign = async () => {
   .upgrade {
     margin: 60px auto 20px;
   }
+
+  .view-count-fixed {
+    display: none;
+  }
+}
+
+.view-count-fixed {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  font-size: 12px;
+  color: #999;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  z-index: 999;
 }
 </style>

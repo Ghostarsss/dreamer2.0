@@ -82,9 +82,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setCreateTime(now);
         user.setUpdateTime(now);
         user.setBio(DEFAULT_BIO);
+        user.setUsername(StrUtil.cleanBlank(user.getUsername()));
         save(user);
 
-        Long userId = user.getId();
+        Long userId = Long.valueOf(user.getId());
 
         //rabbit 发送注册成功消息
         //封装通知内容
@@ -126,7 +127,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
 
 
-        Long userId = user.getId();
+        Long userId = Long.valueOf(user.getId());
         //先令之前的 token 失效，否则多个账号会同时登录
         StpUtil.logout(userId);
         //登录成功
@@ -261,9 +262,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         log.info("用户数据更新: {}", userDto);
 
         User updateUser = BeanUtil.copyProperties(userDto, User.class);
-        updateUser.setId(userId);
+        updateUser.setId(String.valueOf(userId));
         updateUser.setUpdateTime(LocalDateTime.now());
         updateUser.setPassword(null);
+        updateUser.setUsername(StrUtil.cleanBlank(user.getUsername()));
+        updateUser.setBio(StrUtil.trim(userDto.getBio()));
 
         //如果有密码需要修改
         if (!userDto.getPassword().isEmpty()) {
@@ -389,7 +392,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 .select(User::getId)
                 .list()
                 .stream()
-                .map(User::getId);
+                .map(user ->  Long.valueOf(user.getId()));
 
         return SaResult.data(adminUserIds);
     }
@@ -397,7 +400,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public Page<User> listUsers(Integer page) {
 
-        Page<User> userPage = new Page<>(page, ScrollConstant.SCROLL_LIMIT);
+        Page<User> userPage = new Page<>(page, 10);
         Page<User> pageResult = page(userPage, new LambdaQueryWrapper<User>().orderByDesc(User::getCreateTime, User::getId));
 
         return pageResult;

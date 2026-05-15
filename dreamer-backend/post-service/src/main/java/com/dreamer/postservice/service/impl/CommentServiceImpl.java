@@ -367,6 +367,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         return count(new LambdaQueryWrapper<Comment>().eq(Comment::getPostId, postId));
     }
 
+    @Override
+    public void delCommentByUserId(Long userId) {
+
+        //删除评论
+        lambdaUpdate().eq(Comment::getUserId, userId).remove();
+        lambdaUpdate().eq(Comment::getReplyUserId, userId).remove();
+
+    }
+
     /**
      * 封装评论
      *

@@ -21,6 +21,12 @@ import UserVP from "@/page/UserVP.vue";
 import Letter from "@/page/Letter.vue";
 import LetterOpening from "@/page/LetterOpening.vue";
 import {ElMessage} from "element-plus";
+import AdminNavbar from "@/components/AdminNavbar.vue";
+import UserAdmin from "@/page/UserAdmin.vue";
+import PostAdmin from "@/page/PostAdmin.vue";
+import NoticeAdmin from "@/page/NoticeAdmin.vue";
+import FeedbackAdmin from "@/page/FeedbackAdmin.vue";
+import StatisticsAdmin from "@/page/StatisticsAdmin.vue";
 
 const routes = [
     {path: '/', redirect: '/home'},
@@ -97,6 +103,37 @@ const routes = [
             {
                 path: 'mine',
                 component: MinePost
+            },
+        ]
+    },
+
+    {
+        path: '/admin',
+        component: AdminNavbar,
+        children: [
+            {
+                path: '',
+                redirect: '/admin/users'
+            },
+            {
+                path: 'users',
+                component: UserAdmin
+            },
+            {
+                path: 'posts',
+                component: PostAdmin
+            },
+            {
+                path: 'feedback',
+                component: FeedbackAdmin
+            },
+            {
+                path: 'notice',
+                component: NoticeAdmin
+            },
+            {
+                path: 'statistics',
+                component: StatisticsAdmin
             },
         ]
     },

@@ -22,4 +22,6 @@ public interface ICommentService extends IService<Comment> {
     SaResult listAllCommentsByPostId(Long postId);
 
     Long countCommentsByPostId(Long postId);
+
+    void delCommentByUserId(Long userId);
 }

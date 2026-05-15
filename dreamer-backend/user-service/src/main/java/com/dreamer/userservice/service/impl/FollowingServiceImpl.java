@@ -130,13 +130,10 @@ public class FollowingServiceImpl extends ServiceImpl<FollowingMapper, UserFollo
 
     @Override
     public SaResult unFollowByUserId(String userId) {
-        //查询用户是否存在或被封禁
+        //查询用户是否存在
         User user = userService.getById(userId);
         if (user == null) {
             return SaResult.error(UserMessage.USER_NOT_EXISTS);
-        }
-        if (user.getStatus().equals(UserConstant.USER_IS_BANNED)) {
-            return SaResult.error(UserMessage.USER_IS_BANNED_MESSAGE);
         }
 
         long currentUserId = StpUtil.getLoginIdAsLong();

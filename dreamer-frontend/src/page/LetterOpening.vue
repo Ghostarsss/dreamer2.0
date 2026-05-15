@@ -158,6 +158,7 @@ const closeTab = () => {
 };
 
 onMounted(async () => {
+  document.title = "「dreamer」旅行者 8 号"
   await fetchLetters();
   startIntro();
 });

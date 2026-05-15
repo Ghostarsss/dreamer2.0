@@ -61,7 +61,7 @@
           <div class="info">
             <div class="label">「质子」</div>
             <div class="value proton-value">
-              {{ user.proton }} 个
+              {{ user.proton }} 颗
             </div>
           </div>
         </div>
@@ -201,7 +201,7 @@ const handleExchange = async () => {
   try {
 
     await ElMessageBox.confirm(
-        `确认使用 ${exchangeValue.value} 个质子兑换 ${exchangeValue.value * 10} EXP 吗？`,
+        `确认使用 ${exchangeValue.value} 颗质子兑换 ${exchangeValue.value * 10} EXP 吗？`,
         "升级确认",
         {
           type: "warning",

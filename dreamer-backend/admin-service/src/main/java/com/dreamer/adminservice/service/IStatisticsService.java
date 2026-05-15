@@ -7,4 +7,6 @@ import com.dreamer.adminservice.entity.pojo.Statistics;
 public interface IStatisticsService extends IService<Statistics> {
 
     SaResult getStatistics();
+
+    String getView();
 }

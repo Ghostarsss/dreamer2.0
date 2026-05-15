@@ -42,7 +42,7 @@ spring:
         - id: admin-service
           uri: lb://admin-service
           predicates:
-            - Path=/feedbacks/**,/admin/**
+            - Path=/feedbacks/**,/admin/**,/system/**
 
     sentinel:
       transport:

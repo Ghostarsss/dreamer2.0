@@ -7,8 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-import static com.dreamer.common.constant.RabbitMQConstant.ADMIN_DELETE_USER_POST_QUEUE;
-import static com.dreamer.common.constant.RabbitMQConstant.POST_DELETE_COMMENT_LIKE_QUEUE;
+import static com.dreamer.common.constant.RabbitMQConstant.*;
 
 @Component
 @RequiredArgsConstructor
@@ -37,6 +36,15 @@ public class PostConsumer {
     @RabbitListener(queues = ADMIN_DELETE_USER_POST_QUEUE)
     public void delPostByUserId(Long userId) {
         postService.delPostByUserId(userId);
+    }
+
+    /**
+     * 根据 userId 删除相关评论
+     * @param userId
+     */
+    @RabbitListener(queues = ADMIN_DELETE_USER_COMMENT_QUEUE)
+    public void delCommentByUserId(Long userId) {
+        commentService.delCommentByUserId(userId);
     }
 
 }

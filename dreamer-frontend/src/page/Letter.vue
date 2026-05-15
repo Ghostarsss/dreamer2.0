@@ -44,7 +44,8 @@
         >
           <!-- 信封顶部 -->
           <div class="letter-top">
-            <div>
+            <div class="envelope-icon">
+              ✉️
             </div>
 
             <div class="time-box">
@@ -89,7 +90,7 @@
             </div>
 
             <el-button
-                v-if="Number(item.userId) === Number(userId)"
+                v-if="Number(item.userId) === Number(userId) || role == '3' || role == '2' "
                 type="danger"
                 plain
                 round
@@ -130,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import {
   ElMessage,
   ElMessageBox
@@ -149,6 +150,8 @@ interface LetterItem {
   deletedAt: string | null
   createTime: string
 }
+
+const role = localStorage.getItem('role')
 
 const loading = ref(false)
 
@@ -351,6 +354,9 @@ onMounted(() => {
 
   padding: 18px 24px;
   margin-bottom: 22px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 
   border-radius: 24px;
 
@@ -404,6 +410,9 @@ onMounted(() => {
   cursor: pointer;
 
   transition: 0.3s;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .unopened-banner:hover {
@@ -441,6 +450,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 22px;
+  max-width: 1050px;
+  margin: 0 auto;
 }
 
 /* 卡片 */
@@ -469,6 +480,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.envelope-icon {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+
+  font-size: 30px;
 }
 
 .time-box {
@@ -547,6 +568,9 @@ onMounted(() => {
 /* 分页 */
 .pagination-box {
   margin-top: 34px;
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
 
   display: flex;
   justify-content: center;
@@ -584,6 +608,12 @@ onMounted(() => {
 
   .letter-top {
     align-items: flex-start;
+  }
+  .envelope-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+    border-radius: 14px;
   }
 
   .time-value {

@@ -24,7 +24,7 @@
         >
           <el-menu-item index="/home">首页</el-menu-item>
           <el-menu-item index="/post">树洞</el-menu-item>
-          <el-menu-item index="/futureLetter">未来信箱</el-menu-item>
+          <el-menu-item index="/futureLetter">时光信箱</el-menu-item>
           <el-menu-item index="/feedback">反馈</el-menu-item>
         </el-menu>
       </div>
@@ -68,6 +68,22 @@
 
   </div>
 
+  <!-- 管理员中心按钮 -->
+  <transition name="mail-float">
+    <div
+        v-if="showAdminButton"
+        class="admin-button"
+        @click="goAdmin"
+    >
+      <el-icon class="admin-icon">
+        <Setting />
+      </el-icon>
+      <span class="admin-text">
+        管理中心
+      </span>
+    </div>
+  </transition>
+
   <!-- 右下角邮件按钮 -->
   <transition name="mail-float">
     <div
@@ -109,7 +125,7 @@
     >
       <el-menu-item index="/home">首页</el-menu-item>
       <el-menu-item index="/post">树洞</el-menu-item>
-      <el-menu-item index="/futureLetter">未来信箱</el-menu-item>
+      <el-menu-item index="/futureLetter">时光信箱</el-menu-item>
       <el-menu-item index="/feedback">反馈</el-menu-item>
     </el-menu>
   </el-drawer>
@@ -126,7 +142,7 @@
       </div>
 
       <div class="popup-desc">
-        与其他「梦想家」互动、「质子」虚拟货币系统、发布文章、未来信箱...
+        与其他「梦想家」互动、「质子」虚拟货币系统、发布文章、时光信箱...
       </div>
     </div>
   </transition>
@@ -148,7 +164,8 @@ import {
 
 import {
   Message,
-  Menu
+  Menu,
+  Setting
 } from '@element-plus/icons-vue'
 
 import {
@@ -207,6 +224,11 @@ const showDialog = ref(false)
 
 const mobileMenuOpen = ref(false)
 
+const showAdminButton = computed(() => {
+  const role = localStorage.getItem('role')
+  return isLogin.value && (role === '2' || role === '3')
+})
+
 /* 消息页面 */
 const goMessage = () => {
   showDialog.value = true
@@ -221,6 +243,10 @@ const handleMobileSelect = (index: string) => {
 /* 用户操作 */
 const goProfile = () => {
   window.open('/user', '_blank')
+}
+
+const goAdmin = () => {
+  window.open('/admin', '_blank')
 }
 
 /* 退出登录 */
@@ -257,6 +283,7 @@ const getUserInfo = async () => {
 
       user.value = res.data.data
       localStorage.setItem('userId', res.data.data.id)
+      localStorage.setItem('role', res.data.data.role)
 
     } else {
 
@@ -325,7 +352,7 @@ watch(
     } else if (newPath.includes('/post')) {
       document.title = "「dreamer」树洞论坛";
     } else if (newPath.endsWith('/futureLetter')) {
-      document.title = "「dreamer」未来信箱";
+      document.title = "「dreamer」时光信箱";
     } else if (newPath.endsWith('/home')){
       document.title = "「dreamer」梦想家首页";
     }
@@ -432,6 +459,65 @@ onUnmounted(() => {
 }
 
 /* ===================== */
+/* 管理员中心按钮 */
+/* ===================== */
+
+.admin-button {
+
+  position: fixed;
+
+  left: 100px;
+
+  bottom: 60px;
+
+  width: 80px;
+
+  height: 80px;
+
+  border-radius: 50%;
+
+  background: linear-gradient(
+      135deg,
+      rgb(103, 194, 58),
+      rgba(133, 206, 97, 0.86)
+  );
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 1px;
+
+  color: white;
+
+  cursor: pointer;
+
+  user-select: none;
+
+  box-shadow: 0 10px 30px rgba(103, 194, 58, 0.35);
+
+  transition: 0.25s;
+
+  z-index: 2000;
+}
+
+.admin-button:hover {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.admin-icon {
+  font-size: 26px;
+}
+
+.admin-text {
+  font-size: 10px;
+}
+
+/* ===================== */
 /* 右下角邮件按钮 */
 /* ===================== */
 
@@ -441,7 +527,7 @@ onUnmounted(() => {
 
   right: 100px;
 
-  bottom: 50px;
+  bottom: 60px;
 
   width: 80px;
 
@@ -645,6 +731,21 @@ onUnmounted(() => {
     padding: 0 14px;
     border-radius: 10px;
     flex-shrink: 0;
+  }
+
+  .admin-button {
+    left: 20px;
+    bottom: 20px;
+    width: 62px;
+    height: 62px;
+  }
+
+  .admin-icon {
+    font-size: 20px;
+  }
+
+  .admin-text {
+    display: none;
   }
 
   .mail-button {

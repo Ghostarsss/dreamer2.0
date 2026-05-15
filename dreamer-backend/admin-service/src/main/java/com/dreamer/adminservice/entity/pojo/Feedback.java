@@ -17,12 +17,12 @@ public class Feedback {
      * 反馈ID
      */
     @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+    private String id;
 
     /**
      * 反馈用户ID
      */
-    private Long userId;
+    private String userId;
 
     /**
      * 反馈类型：0 bug，1 建议

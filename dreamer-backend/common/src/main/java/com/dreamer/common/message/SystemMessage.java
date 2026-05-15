@@ -6,4 +6,5 @@ public class SystemMessage {
 
     public static final String OPERATION_FREQUENT = "操作频繁，请稍后再试";
 
+    public static final String NO_PERMISSION = "您没有权限做此操作";
 }

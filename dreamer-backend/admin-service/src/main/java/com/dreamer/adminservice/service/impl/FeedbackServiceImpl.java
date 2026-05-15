@@ -63,7 +63,7 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback> i
             Feedback feedback = BeanUtil.copyProperties(feedbackDto, Feedback.class);
             LocalDateTime now = LocalDateTime.now();
             feedback.setCreateTime(now);
-            feedback.setUserId(userId);
+            feedback.setUserId(String.valueOf(userId));
             feedback.setUpdateTime(now);
 
             save(feedback);
@@ -112,7 +112,7 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback> i
         }
 
         //远程通知用户反馈已受理
-        Long userId = getById(feedbackId).getUserId();
+        Long userId = Long.valueOf(getById(feedbackId).getUserId());
         MessageDto messageDto = MessageDto.builder()
                 .sendId(StpUtil.getLoginIdAsLong())
                 .userId(userId)

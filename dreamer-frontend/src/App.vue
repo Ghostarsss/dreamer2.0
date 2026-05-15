@@ -2,7 +2,7 @@
   <el-container class="layout">
 
     <!-- 登录页不显示导航栏 -->
-    <Navbar v-if="!(isOpenLetterPage ||isLoginPage || isRegisterPage || isUserProfilePage)" />
+    <Navbar v-if="!(isOpenLetterPage ||isLoginPage || isRegisterPage || isUserProfilePage ||isAdminPage)" />
 
     <!-- 内容区域 -->
     <el-main class="main">
@@ -23,6 +23,7 @@ const route = useRoute()
 const isLoginPage = computed(() => route.path === '/login')
 const isRegisterPage = computed(() => route.path === '/register')
 const isUserProfilePage = computed(() => route.path.startsWith('/user'))
+const isAdminPage = computed(() => route.path.startsWith('/admin'))
 const isOpenLetterPage = computed(() => route.path === '/futureLetter/opening')
 </script>
 
