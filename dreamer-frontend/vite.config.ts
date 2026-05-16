@@ -6,19 +6,20 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/new/',
   plugins: [
     vue(),
   ],
 
-  server: {
+  /*server: {
     proxy: {
-      '/api': {
+      '/plus': {
         target: 'http://localhost:8081', // 你的后端地址
         changeOrigin: true, // 允许跨域
         rewrite: (path) => path.replace(/^\/api/, '') // 把 /api 重写为空
       }
     }
-  },
+  },*/
 
   resolve: {
     alias: {
