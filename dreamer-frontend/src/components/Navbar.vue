@@ -6,7 +6,7 @@
       <div class="left">
         <el-space :size="10" alignment="center">
           <el-image
-              src="/src/assets/icon.png"
+              :src="logo"
               class="logo-img"
               fit="cover"
           />
@@ -176,9 +176,9 @@ import {
   me
 } from "@/api/userApi.ts";
 
-import request from '@/utils/request.ts'
 import MessageModal from "@/components/MessageModal.vue";
 import {countUnReadMessage} from "@/api/messageApi.ts";
+import logo from "@/assets/icon.png";
 
 const router = useRouter()
 
